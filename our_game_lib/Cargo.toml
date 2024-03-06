@@ -1,0 +1,4 @@
+[package]
+name = "game_helper"
+version = "0.1.0"
+authors = ["Mathieu Ponal <mathieu.ponal@gmail.com>"]

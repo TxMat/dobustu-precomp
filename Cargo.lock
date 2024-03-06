@@ -5,3 +5,10 @@ version = 3
 [[package]]
 name = "dobustu-precomp"
 version = "0.1.0"
+dependencies = [
+ "game_helper",
+]
+
+[[package]]
+name = "game_helper"
+version = "0.1.0"
