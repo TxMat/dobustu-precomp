@@ -3,8 +3,8 @@ use moves::Move;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Piece {
-    piece_type: Type,
-    color: Color
+    pub(crate) piece_type: Type,
+    pub(crate) color: Color
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -39,6 +39,10 @@ impl Piece {
             Type::Lion => MOVE_LION,
             Type::Hen => MOVE_HEN
         }
+    }
+    
+    pub fn is_move_valid(&self, move_: Move) -> bool {
+        self.moves().contains(&&move_)
     }
 
     pub fn show(&self) -> char {

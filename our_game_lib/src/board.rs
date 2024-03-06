@@ -1,6 +1,6 @@
-use std::fmt::{Display, Formatter};
+use moves::Move;
 use piece::Color::{Black, White};
-use piece::Piece;
+use piece::{Color, Piece, Type};
 use piece::Type::{Chick, Elephant, Giraffe, Lion};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -26,14 +26,12 @@ impl Board {
         self.board[y as usize][x as usize]
     }
 
-    pub fn put(&mut self, x: i8, y: i8, p: Piece) -> &Board {
+    pub fn put(&mut self, x: i8, y: i8, p: Piece) {
         self.board[y as usize][x as usize] = Some(p);
-        self
     }
 
-    pub fn del(&mut self, x: i8, y: i8) -> &Board {
+    pub fn del(&mut self, x: i8, y: i8) {
         self.board[y as usize][x as usize] = None;
-        self
     }
 
     pub fn init() -> Board {
@@ -47,6 +45,26 @@ impl Board {
         b.put(1, 3, Piece::new(Lion, Black));
         b.put(0, 3, Piece::new(Giraffe, Black));
         b
+    }
+
+    // si tu comprneds pas ce code c'est pas grave juste ca renvoie une ref de la piece si elle est sur la board
+    pub fn find_piece_on_board_opti(&self, piece: Piece) -> Option<&Piece> {
+        self.board.iter().flatten()
+        .find(|p| p.is_some() && p.unwrap() == piece)
+        .map(|p| p.as_ref().unwrap())
+
+    }
+
+    pub fn move_piece(&mut self, piece: Piece, move_: Move) -> bool {
+        if piece.is_move_valid(move_) {
+            todo!();
+            // let (x, y) = move_.apply(piece);
+            // self.del(x, y);
+            // self.put(x, y, piece);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn show(&self) {
