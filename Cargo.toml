@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 game_helper = { path = "our_game_lib" }
+rand = "0.9.0-alpha.0"

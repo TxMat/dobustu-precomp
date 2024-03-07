@@ -1,9 +1,12 @@
-use std::vec;
+use std::error::Error;
+
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
 use piece::Color::{Black, White};
-use piece::{Color, Piece, PieceType};
+use piece::{Color, PieceType};
+use piece::Piece;
 use piece::PieceType::{Chick, Elephant, Giraffe, Lion};
+use structs::GameError;
 
 /// Represents the game board.
 /// The board is a 2D array of 3x4 pieces.
@@ -16,33 +19,38 @@ pub struct Board {
     // Cemetery for the white pieces
     white_cemetery: Vec<Piece>,
     // Cemetery for the black pieces
-    black_cemetery: Vec<Piece>
+    black_cemetery: Vec<Piece>,
+    is_white_turn: bool,
+    pub winner: Option<Color>,
+
 }
 
 impl Board {
     /// Creates a new empty board.
     pub fn new_empty() -> Board {
-        Board{
+        Board {
             board: [[None; 3]; 4],
             white_cemetery: Vec::new(),
-            black_cemetery: Vec::new()
+            black_cemetery: Vec::new(),
+            is_white_turn: true,
+            winner: None,
         }
     }
 
     /// Returns the piece at the given coordinates.
     /// The coordinates are flipped because of the way the board is stored.
-    pub fn get(&self, x: i8, y: i8) -> Option<Piece> {
-        self.board[y as usize][x as usize]
+    pub fn get(&self, x: usize, y: usize) -> Option<Piece> {
+        self.board[y][x]
     }
 
     /// Places a piece at the given coordinates.
-    pub fn put(&mut self, x: i8, y: i8, p: &Piece) {
-        self.board[y as usize][x as usize] = Some(*p);
+    pub fn put(&mut self, x: usize, y: usize, p: &Piece) {
+        self.board[y][x] = Some(*p);
     }
 
     /// Removes the piece at the given coordinates.
-    pub fn del(&mut self, x: i8, y: i8) {
-        self.board[y as usize][x as usize] = None;
+    pub fn del(&mut self, x: usize, y: usize) {
+        self.board[y][x] = None;
     }
 
     /// Initializes the board with the default setup.
@@ -62,12 +70,14 @@ impl Board {
     /// Returns a reference to a piece on the board if it exists.
     pub fn find_piece_on_board_opti(&self, piece: Piece) -> Option<&Piece> {
         // t'inquietes pas si tu ne comprends pas cette fonction
-        self.board.iter().flatten()
-        .find(|p| p.is_some() && p.unwrap() == piece)
-        .map(|p| p.as_ref().unwrap())
+        self.board
+            .iter()
+            .flatten()
+            .find(|p| p.is_some() && p.unwrap() == piece)
+            .map(|p| p.as_ref().unwrap())
     }
 
-    pub fn find_piece_on_board(&self, piece: &Piece) -> Option<(i8, i8)> {
+    pub fn find_piece_on_board(&self, piece: &Piece) -> Option<(usize, usize)> {
         for y in 0..4 {
             for x in 0..3 {
                 if self.get(x, y) == Some(*piece) {
@@ -79,26 +89,99 @@ impl Board {
     }
 
     /// Moves a piece on the board if the move is valid.
-pub fn move_piece(&mut self, piece: &Piece, move_: &Move) -> bool {
-    if piece.is_move_valid(&move_) {
-        let piece_pos = self.find_piece_on_board(&piece).unwrap();
-        let target_pos = (piece_pos.0 + move_.x, piece_pos.1 + move_.y);
-        let captured_piece = self.get(target_pos.0, target_pos.1);
+    pub fn move_piece(&mut self, piece: &Piece, move_: &Move) -> Result<(), Box<dyn Error>> {
+        if piece.is_move_valid(&move_) {
+            let piece_pos = self.find_piece_on_board(&piece);
+            if piece_pos.is_none() {
+                return Err(GameError::PieceNotInBoard.into());
+            }
+            let piece_pos = piece_pos.unwrap();
+            let target_pos = (piece_pos.0 as i8 + move_.x, piece_pos.1 as i8 + move_.y);
+            if target_pos.0 > 2 || target_pos.1 > 3 || target_pos.0 < 0 || target_pos.1 < 0 {
+                return Err(GameError::OutOfBounds.into());
+            }
+            let target_pos = (target_pos.0 as usize, target_pos.1 as usize);
+            let piece_on_the_way = self.get(target_pos.0, target_pos.1);
 
-        self.del(piece_pos.0, piece_pos.1);
-        if let Some(captured) = captured_piece {
-            let cemetery = match captured.color {
+            if let Some(p) = piece_on_the_way {
+                if p.color == piece.color {
+                    return Err(GameError::IllegalMove.into());
+                }
+                if p.piece_type == Lion {
+                    self.winner = Some(piece.color);
+                }
+                let cemetery = match p.color {
+                    White => &mut self.white_cemetery,
+                    Black => &mut self.black_cemetery,
+                };
+                cemetery.push(p);
+            }
+
+
+            self.del(piece_pos.0, piece_pos.1);
+
+            // if the chick reaches the last row, it becomes a hen
+            if piece.piece_type == Chick && (target_pos.1 == 0 || target_pos.1 == 3) {
+                self.put(target_pos.0, target_pos.1, &Piece::new(PieceType::Hen, piece.color));
+            } else {
+                self.put(target_pos.0, target_pos.1, &piece);
+            }
+
+            // if lion is on the last row, the game is over
+            if piece.piece_type == Lion {
+                match piece.color {
+                    White => {
+                        if target_pos.1 == 0 {
+                            self.winner = Some(White);
+                        }
+                    },
+                    Black => {
+                        if target_pos.1 == 3 {
+                            self.winner = Some(Black);
+                        }
+                    }
+                }
+            }
+
+
+            self.put(target_pos.0, target_pos.1, &piece);
+            self.is_white_turn = !self.is_white_turn;
+            Ok(())
+        } else {
+            Err(GameError::IllegalMove.into())
+        }
+    }
+
+    pub fn get_turn(&self) -> Color {
+        if self.is_white_turn {
+            White
+        } else {
+            Black
+        }
+    }
+
+    pub fn drop_piece(&mut self, piece: &Piece, color: Color, x: usize, y: usize) -> Result<(), Box<dyn Error>> {
+        if self.get(x, y).is_some() {
+            return Err(GameError::IllegalMove.into());
+        } else {
+            let cemetary = match color {
                 White => &mut self.white_cemetery,
                 Black => &mut self.black_cemetery,
             };
-            cemetery.push(captured);
+            if cemetary.contains(piece) {
+                    cemetary.retain(|p| p != piece);
+                    self.put(x, y, piece);
+                    self.is_white_turn = !self.is_white_turn;
+                    Ok(())
+            } else {
+                Err(GameError::IllegalMove.into())
+            }
         }
-        self.put(target_pos.0, target_pos.1, &piece);
-        true
-    } else {
-        false
     }
-}
+
+    pub fn is_game_over(&self) -> bool {
+        self.winner.is_some()
+    }
 
     /// Prints the current state of the board and the cemeteries.
     pub fn show(&self) {
@@ -108,15 +191,23 @@ pub fn move_piece(&mut self, piece: &Piece, move_: &Move) -> bool {
             for x in 0..3 {
                 s.push(match self.get(x, y) {
                     Some(p) => p.show(),
-                    None => ' '
+                    None => ' ',
                 });
             }
             println!("{}", s);
             s.clear();
         }
         println!("---\n");
-        let white_cemetery: Vec<String> = self.white_cemetery.iter().map(|p| p.show().to_string()).collect();
-        let black_cemetery: Vec<String> = self.black_cemetery.iter().map(|p| p.show().to_string()).collect();
+        let white_cemetery: Vec<String> = self
+            .white_cemetery
+            .iter()
+            .map(|p| p.show().to_string())
+            .collect();
+        let black_cemetery: Vec<String> = self
+            .black_cemetery
+            .iter()
+            .map(|p| p.show().to_string())
+            .collect();
         println!("White cemetery: {:?}", white_cemetery);
         println!("Black cemetery: {:?}", black_cemetery);
     }
