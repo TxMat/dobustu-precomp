@@ -85,11 +85,11 @@ impl Board {
     // `Ok` indicates a successful operation and `Err` indicates an error.
     pub fn move_piece(&mut self, piece: &mut Piece, move_: &Move) -> Result<(), Box<dyn Error>> {
         // Check if the move is valid for the piece.
-        if piece.is_move_valid(&move_) {
+        if piece.is_move_valid(move_) {
             // Set the color of the piece to the current turn's color.
             piece.color = self.get_turn();
             // Find the piece on the board.
-            let piece_pos = self.find_piece_on_board(&piece)?;
+            let piece_pos = self.find_piece_on_board(piece)?;
 
             // Calculate the new coordinates for the piece.
             let (x, y) = (piece_pos.0 as i8 + move_.x, piece_pos.1 as i8 + move_.y);
@@ -135,16 +135,15 @@ impl Board {
                 );
             } else {
                 // Otherwise, move the piece to the target position.
-                self.put(target_pos.0, target_pos.1, &piece);
+                self.put(target_pos.0, target_pos.1, piece);
             }
 
             // If the piece is a Lion and it reaches the last row, the game is over.
-            if piece.piece_type == Lion {
-                if (current_player_color == White && target_pos.1 == 3)
-                    || (current_player_color == Black && target_pos.1 == 0)
-                {
-                    self.winner = Some(current_player_color);
-                }
+            if piece.piece_type == Lion
+                && ((current_player_color == White && target_pos.1 == 3)
+                    || (current_player_color == Black && target_pos.1 == 0))
+            {
+                self.winner = Some(current_player_color);
             }
 
             // Switch turns.
@@ -175,7 +174,7 @@ impl Board {
     ) -> Result<(), Box<dyn Error>> {
         // Check if the target position is occupied.
         if self.get(x, y).is_some() {
-            return Err(GameError::IllegalMove.into());
+            Err(GameError::IllegalMove.into())
         } else {
             // Check if the piece is in the current player's cemetery.
             let cemetary = match color {
