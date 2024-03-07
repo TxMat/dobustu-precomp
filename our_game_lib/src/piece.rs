@@ -18,6 +18,7 @@ pub struct Piece {
 pub enum Color {
     White,
     Black,
+    None,
 }
 
 /// Represents the type of a piece.
@@ -41,9 +42,10 @@ impl Piece {
         match self.color {
             Color::White => self.piece_type.show(),
             Color::Black => self.piece_type.show().to_ascii_uppercase(),
+            Color::None => ' ',
         }
     }
-    
+
     pub fn is_move_valid(&self, move_: &Move) -> bool {
         self.piece_type.is_move_valid(move_)
     }

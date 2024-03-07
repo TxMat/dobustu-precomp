@@ -88,8 +88,9 @@ impl Board {
     }
 
     /// Moves a piece on the board if the move is valid.
-    pub fn move_piece(&mut self, piece: &Piece, move_: &Move) -> Result<(), Box<dyn Error>> {
+    pub fn move_piece(&mut self, piece: &mut Piece, move_: &Move) -> Result<(), Box<dyn Error>> {
         if piece.is_move_valid(&move_) {
+            piece.color = self.get_turn();
             let piece_pos = self
                 .find_piece_on_board(&piece)
                 .ok_or::<GameError>(GameError::PieceNotInBoard.into())?;
@@ -98,19 +99,23 @@ impl Board {
             if x > 2 || y > 3 || x < 0 || y < 0 {
                 return Err(GameError::OutOfBounds.into());
             }
+
+            let current_player_color = self.get_turn();
+
             let target_pos = (x as usize, y as usize);
             let piece_on_the_way = self.get(target_pos.0, target_pos.1);
 
             if let Some(p) = piece_on_the_way {
-                if p.color == piece.color {
+                if p.color == current_player_color {
                     return Err(GameError::IllegalMove.into());
                 }
                 if p.piece_type == Lion {
-                    self.winner = Some(piece.color);
+                    self.winner = Some(current_player_color);
                 }
-                let cemetery = match p.color {
+                let cemetery = match current_player_color {
                     White => &mut self.white_cemetery,
                     Black => &mut self.black_cemetery,
+                    _ => unreachable!(),
                 };
                 cemetery.push(p);
             }
@@ -122,7 +127,7 @@ impl Board {
                 self.put(
                     target_pos.0,
                     target_pos.1,
-                    &Piece::new(PieceType::Hen, piece.color),
+                    &Piece::new(PieceType::Hen, current_player_color),
                 );
             } else {
                 self.put(target_pos.0, target_pos.1, &piece);
@@ -130,10 +135,10 @@ impl Board {
 
             // if lion is on the last row, the game is over
             if piece.piece_type == Lion {
-                if (piece.color == White && target_pos.1 == 3)
-                    || (piece.color == Black && target_pos.1 == 0)
+                if (current_player_color == White && target_pos.1 == 3)
+                    || (current_player_color == Black && target_pos.1 == 0)
                 {
-                    self.winner = Some(piece.color);
+                    self.winner = Some(current_player_color);
                 }
             }
 
@@ -165,6 +170,7 @@ impl Board {
             let cemetary = match color {
                 White => &mut self.white_cemetery,
                 Black => &mut self.black_cemetery,
+                _ => unreachable!(),
             };
             if cemetary.contains(piece) {
                 cemetary.retain(|p| p != piece);
