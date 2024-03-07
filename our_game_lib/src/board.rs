@@ -2,8 +2,8 @@ use std::vec;
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
 use piece::Color::{Black, White};
-use piece::{Color, Piece, Type};
-use piece::Type::{Chick, Elephant, Giraffe, Lion};
+use piece::{Color, Piece, PieceType};
+use piece::PieceType::{Chick, Elephant, Giraffe, Lion};
 
 /// Represents the game board.
 /// The board is a 2D array of 3x4 pieces.
@@ -36,8 +36,8 @@ impl Board {
     }
 
     /// Places a piece at the given coordinates.
-    pub fn put(&mut self, x: i8, y: i8, p: Piece) {
-        self.board[y as usize][x as usize] = Some(p);
+    pub fn put(&mut self, x: i8, y: i8, p: &Piece) {
+        self.board[y as usize][x as usize] = Some(*p);
     }
 
     /// Removes the piece at the given coordinates.
@@ -48,14 +48,14 @@ impl Board {
     /// Initializes the board with the default setup.
     pub fn init() -> Board {
         let mut b = Board::new_empty();
-        b.put(0, 0, Piece::new(Giraffe, White));
-        b.put(1, 0, Piece::new(Lion, White));
-        b.put(2, 0, Piece::new(Elephant, White));
-        b.put(1, 1, Piece::new(Chick, White));
-        b.put(1, 2, Piece::new(Chick, Black));
-        b.put(2, 3, Piece::new(Elephant, Black));
-        b.put(1, 3, Piece::new(Lion, Black));
-        b.put(0, 3, Piece::new(Giraffe, Black));
+        b.put(0, 0, &Piece::new(Giraffe, White));
+        b.put(1, 0, &Piece::new(Lion, White));
+        b.put(2, 0, &Piece::new(Elephant, White));
+        b.put(1, 1, &Piece::new(Chick, White));
+        b.put(1, 2, &Piece::new(Chick, Black));
+        b.put(2, 3, &Piece::new(Elephant, Black));
+        b.put(1, 3, &Piece::new(Lion, Black));
+        b.put(0, 3, &Piece::new(Giraffe, Black));
         b
     }
 
@@ -67,10 +67,10 @@ impl Board {
         .map(|p| p.as_ref().unwrap())
     }
 
-    pub fn find_piece_on_board(&self, piece: Piece) -> Option<(i8, i8)> {
+    pub fn find_piece_on_board(&self, piece: &Piece) -> Option<(i8, i8)> {
         for y in 0..4 {
             for x in 0..3 {
-                if self.get(x, y) == Some(piece) {
+                if self.get(x, y) == Some(*piece) {
                     return Some((x, y));
                 }
             }
@@ -79,9 +79,9 @@ impl Board {
     }
 
     /// Moves a piece on the board if the move is valid.
-pub fn move_piece(&mut self, piece: Piece, move_: &Move) -> bool {
+pub fn move_piece(&mut self, piece: &Piece, move_: &Move) -> bool {
     if piece.is_move_valid(&move_) {
-        let piece_pos = self.find_piece_on_board(piece).unwrap();
+        let piece_pos = self.find_piece_on_board(&piece).unwrap();
         let target_pos = (piece_pos.0 + move_.x, piece_pos.1 + move_.y);
         let captured_piece = self.get(target_pos.0, target_pos.1);
 
@@ -93,7 +93,7 @@ pub fn move_piece(&mut self, piece: Piece, move_: &Move) -> bool {
             };
             cemetery.push(captured);
         }
-        self.put(target_pos.0, target_pos.1, piece);
+        self.put(target_pos.0, target_pos.1, &piece);
         true
     } else {
         false
@@ -115,7 +115,9 @@ pub fn move_piece(&mut self, piece: Piece, move_: &Move) -> bool {
             s.clear();
         }
         println!("---\n");
-        println!("White cemetery: {:?}", self.white_cemetery);
-        println!("Black cemetery: {:?}", self.black_cemetery);
+        let white_cemetery: Vec<String> = self.white_cemetery.iter().map(|p| p.show().to_string()).collect();
+        let black_cemetery: Vec<String> = self.black_cemetery.iter().map(|p| p.show().to_string()).collect();
+        println!("White cemetery: {:?}", white_cemetery);
+        println!("Black cemetery: {:?}", black_cemetery);
     }
 }
