@@ -190,29 +190,32 @@ impl Board {
     /// Prints the current state of the board and the cemeteries.
     pub fn show(&self) {
         println!("---");
-        let mut s = String::new();
         for y in (0..4).rev() {
             for x in 0..3 {
-                s.push(match self.get(x, y) {
-                    Some(p) => p.show(),
-                    None => ' ',
-                });
+                print!(
+                    "{}",
+                    match self.get(x, y) {
+                        Some(p) => p.show(),
+                        None => ' ',
+                    }
+                );
             }
-            println!("{}", s);
-            s.clear();
+            println!();
         }
         println!("---\n");
-        let white_cemetery: Vec<String> = self
-            .white_cemetery
-            .iter()
-            .map(|p| p.show().to_string())
-            .collect();
-        let black_cemetery: Vec<String> = self
-            .black_cemetery
-            .iter()
-            .map(|p| p.show().to_string())
-            .collect();
-        println!("White cemetery: {:?}", white_cemetery);
-        println!("Black cemetery: {:?}", black_cemetery);
+        println!(
+            "White cemetery: {:?}",
+            self.white_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        );
+        println!(
+            "Black cemetery: {:?}",
+            self.black_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        );
     }
 }
