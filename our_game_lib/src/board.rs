@@ -3,9 +3,9 @@ use std::error::Error;
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
 use piece::Color::{Black, White};
-use piece::{Color, PieceType};
 use piece::Piece;
 use piece::PieceType::{Chick, Elephant, Giraffe, Lion};
+use piece::{Color, PieceType};
 use structs::GameError;
 
 /// Represents the game board.
@@ -22,7 +22,6 @@ pub struct Board {
     black_cemetery: Vec<Piece>,
     is_white_turn: bool,
     pub winner: Option<Color>,
-
 }
 
 impl Board {
@@ -91,16 +90,15 @@ impl Board {
     /// Moves a piece on the board if the move is valid.
     pub fn move_piece(&mut self, piece: &Piece, move_: &Move) -> Result<(), Box<dyn Error>> {
         if piece.is_move_valid(&move_) {
-            let piece_pos = self.find_piece_on_board(&piece);
-            if piece_pos.is_none() {
-                return Err(GameError::PieceNotInBoard.into());
-            }
-            let piece_pos = piece_pos.unwrap();
-            let target_pos = (piece_pos.0 as i8 + move_.x, piece_pos.1 as i8 + move_.y);
-            if target_pos.0 > 2 || target_pos.1 > 3 || target_pos.0 < 0 || target_pos.1 < 0 {
+            let piece_pos = self
+                .find_piece_on_board(&piece)
+                .ok_or::<GameError>(GameError::PieceNotInBoard.into())?;
+
+            let (x, y) = (piece_pos.0 as i8 + move_.x, piece_pos.1 as i8 + move_.y);
+            if x > 2 || y > 3 || x < 0 || y < 0 {
                 return Err(GameError::OutOfBounds.into());
             }
-            let target_pos = (target_pos.0 as usize, target_pos.1 as usize);
+            let target_pos = (x as usize, y as usize);
             let piece_on_the_way = self.get(target_pos.0, target_pos.1);
 
             if let Some(p) = piece_on_the_way {
@@ -117,34 +115,28 @@ impl Board {
                 cemetery.push(p);
             }
 
-
             self.del(piece_pos.0, piece_pos.1);
 
             // if the chick reaches the last row, it becomes a hen
             if piece.piece_type == Chick && (target_pos.1 == 0 || target_pos.1 == 3) {
-                self.put(target_pos.0, target_pos.1, &Piece::new(PieceType::Hen, piece.color));
+                self.put(
+                    target_pos.0,
+                    target_pos.1,
+                    &Piece::new(PieceType::Hen, piece.color),
+                );
             } else {
                 self.put(target_pos.0, target_pos.1, &piece);
             }
 
             // if lion is on the last row, the game is over
             if piece.piece_type == Lion {
-                match piece.color {
-                    White => {
-                        if target_pos.1 == 0 {
-                            self.winner = Some(White);
-                        }
-                    },
-                    Black => {
-                        if target_pos.1 == 3 {
-                            self.winner = Some(Black);
-                        }
-                    }
+                if (piece.color == White && target_pos.1 == 3)
+                    || (piece.color == Black && target_pos.1 == 0)
+                {
+                    self.winner = Some(piece.color);
                 }
             }
 
-
-            self.put(target_pos.0, target_pos.1, &piece);
             self.is_white_turn = !self.is_white_turn;
             Ok(())
         } else {
@@ -160,7 +152,13 @@ impl Board {
         }
     }
 
-    pub fn drop_piece(&mut self, piece: &Piece, color: Color, x: usize, y: usize) -> Result<(), Box<dyn Error>> {
+    pub fn drop_piece(
+        &mut self,
+        piece: &Piece,
+        color: Color,
+        x: usize,
+        y: usize,
+    ) -> Result<(), Box<dyn Error>> {
         if self.get(x, y).is_some() {
             return Err(GameError::IllegalMove.into());
         } else {
@@ -169,10 +167,10 @@ impl Board {
                 Black => &mut self.black_cemetery,
             };
             if cemetary.contains(piece) {
-                    cemetary.retain(|p| p != piece);
-                    self.put(x, y, piece);
-                    self.is_white_turn = !self.is_white_turn;
-                    Ok(())
+                cemetary.retain(|p| p != piece);
+                self.put(x, y, piece);
+                self.is_white_turn = !self.is_white_turn;
+                Ok(())
             } else {
                 Err(GameError::IllegalMove.into())
             }
