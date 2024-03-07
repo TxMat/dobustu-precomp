@@ -1,4 +1,4 @@
 pub mod board;
-mod piece;
-mod moves;
-mod result;
+pub mod piece;
+pub mod moves;
+pub mod result;
