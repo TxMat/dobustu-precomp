@@ -256,20 +256,22 @@ impl Board {
 
     // Prints the current state of the board and the cemeteries.
     pub fn show(&self) {
-        println!("---");
-        for y in (0..4).rev() {
-            for x in 0..3 {
-                print!(
-                    "{}",
-                    match self.get(x, y) {
-                        Some(p) => p.show(),
-                        None => ' ',
-                    }
-                );
+        println!("##############");
+
+        fn print_row_nb() {
+            print!("    0 1 2")
+        }
+
+        for y in (0..6).rev() {
+            match y {
+                0 => print_row_nb(),
+                5 => print_row_nb(),
+                _ => self.a(y),
             }
+
             println!();
         }
-        println!("---\n");
+        println!("##############\n");
         println!(
             "White cemetery: {:?}",
             self.white_cemetery
@@ -284,5 +286,22 @@ impl Board {
                 .map(|p| p.show().to_string())
                 .collect::<Vec<String>>()
         );
+    }
+
+    fn a(&self, y: usize) {
+        for x in 0..5 {
+            let y = y - 1;
+            match x {
+                0 => print!("{} | ", y),
+                4 => print!("| {}", y),
+                _ => print!(
+                    "{} ",
+                    match self.get(x - 1, y) {
+                        Some(p) => p.show(),
+                        None => ' ',
+                    }
+                ),
+            }
+        }
     }
 }
