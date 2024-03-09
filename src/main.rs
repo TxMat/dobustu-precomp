@@ -96,7 +96,7 @@ fn drop_piece(b: &mut Board) -> Result<(), Box<dyn Error>> {
     print!("\n\n");
     std::io::stdout().flush().unwrap();
 
-    match choose_piece(&b) {
+    match choose_piece(b) {
         Ok(mut p) => drop_piece_coors(b, &mut p),
         Err(_) => Err(InavlidPiece.into()),
     }
@@ -118,7 +118,7 @@ fn drop_piece_coors(b: &mut Board, piece: &mut Piece) -> Result<(), Box<dyn Erro
 fn move_piece(b: &mut Board, piece: &mut Piece) -> Result<(), Box<dyn Error>> {
     println!("Enter move type: ");
 
-    let m = b.get_legal_move_list_for_piece(&piece)?;
+    let m = b.get_legal_move_list_for_piece(piece)?;
 
     if m.is_empty() {
         return Err(CantMoveAnywhere.into());
