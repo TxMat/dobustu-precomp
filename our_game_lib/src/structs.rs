@@ -3,9 +3,9 @@ use std::error::Error;
 use std::fmt::Display;
 
 #[derive(PartialEq, Eq)]
-pub enum Result {
-    Win,
-    Lose,
+pub enum GameResult {
+    WhiteWin,
+    BlackWin,
     Intermediate(Vec<Board>),
 }
 

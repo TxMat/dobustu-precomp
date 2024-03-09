@@ -1,5 +1,7 @@
 /// todo divide the code in smaller functions
 use std::error::Error;
+use std::fmt::format;
+use std::hash::Hash;
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
 use piece::Color::{Black, White};
@@ -7,6 +9,7 @@ use piece::Piece;
 use piece::PieceType::{Chick, Elephant, Giraffe, Lion};
 use piece::{Color, PieceType};
 use structs::GameError;
+use structs::GameResult::{BlackWin, Intermediate, WhiteWin};
 
 // The `derive` attribute automatically implements the specified traits for the struct.
 // Clone: Allows the struct to be duplicated.
@@ -311,5 +314,113 @@ impl Board {
                 ),
             }
         }
+    }
+
+    fn a2(&self, y: usize, s: &mut String) {
+        for x in 0..5 {
+            let y = y - 1;
+            match x {
+                0 => s.push_str(&format!("{} | ", y)),
+                4 => s.push_str(&format!("| {}", y)),
+                _ => s.push_str(&format!(
+                    "{} ",
+                    match self.get(x - 1, y) {
+                        Some(p) => p.show(),
+                        None => " ".to_string(),
+                    }
+                )),
+            }
+        }
+    }
+
+    pub fn get_hash(&self) -> String {
+        let mut s = String::new();
+        for y in (0..4) {
+            for x in 0..3 {
+                match self.get(x, y) {
+                    Some(p) => {
+                        s.push_str(&format!("{}{}{}", p.show(), x, y));
+                    }
+                    None => s.push_str(&format!("#{}{}", x, y)),
+                }
+            }
+        }
+        s
+    }
+
+    pub fn show_file(&self) -> String {
+        let mut s = String::new();
+        s.push_str(self.get_hash().as_str());
+        s.push_str("\n");
+        s.push_str("##############\n");
+
+        for y in (0..6).rev() {
+            match y {
+                0 => s.push_str("    0 1 2"),
+                5 => s.push_str("    0 1 2"),
+                _ => self.a2(y, &mut s),
+            }
+
+            s.push_str("\n");
+        }
+        s.push_str("##############\n");
+        s.push_str(&format!(
+            "White cemetery: {:?}",
+            self.white_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        ));
+        s.push_str("\n");
+        s.push_str(&format!(
+            "Black cemetery: {:?}",
+            self.black_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        ));
+        s.push_str("\n\n");
+        s
+    }
+
+    pub fn next(&self) -> crate::structs::GameResult {
+        let mut boards = vec![];
+        for y in 0..4 {
+            for x in 0..3 {
+                let p = self.get(x, y);
+                match p {
+                    Some(p) => {
+                        if p.color != self.get_turn() {
+                            continue;
+                        }
+                        for m in self.get_legal_move_list_for_piece(&p).unwrap() {
+                            let mut b = self.clone();
+                            b.move_piece(&mut p.clone(), m).unwrap();
+                            if b.is_game_over() {
+                                match b.winner {
+                                    Some(Color::White) => return WhiteWin,
+                                    Some(Color::Black) => return BlackWin,
+                                    _ => (),
+                                }
+                            }
+                            boards.push(b.clone());
+                        }
+                    }
+                    None => {
+                        for p in self.get_curent_player_cemetery() {
+                            for y in 0..4 {
+                                for x in 0..3 {
+                                    let mut b = self.clone();
+                                    if b.drop_piece(&mut p.clone(), x, y).is_ok() {
+                                        boards.push(b);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Intermediate(boards)
     }
 }
