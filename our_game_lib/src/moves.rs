@@ -46,3 +46,19 @@ impl Display for Move {
         }
     }
 }
+
+impl Move {
+    pub(crate) fn invert(&self) -> &Move {
+        match self { 
+            MOVE_NW => MOVE_SE,
+            MOVE_N => MOVE_S,
+            MOVE_NE => MOVE_SW,
+            MOVE_W => MOVE_E,
+            MOVE_E => MOVE_W,
+            MOVE_SW => MOVE_NE,
+            MOVE_S => MOVE_N,
+            MOVE_SE => MOVE_NW,
+            _ => self,
+        }
+    }
+}

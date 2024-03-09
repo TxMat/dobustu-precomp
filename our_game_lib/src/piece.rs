@@ -54,7 +54,7 @@ impl Piece {
 impl PieceType {
     /// Returns the moves that the piece can make.
     /// The moves are determined by the type of the piece.
-    pub fn moves(&self) -> &'static [&'static Move] {
+    pub fn moves(&self) -> &[&Move] {
         match self {
             PieceType::Chick => MOVE_CHICK,
             PieceType::Giraffe => MOVE_GIRAFFE,

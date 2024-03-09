@@ -95,13 +95,21 @@ impl Board {
         result
     }
 
-    pub fn get_legal_move_list_for_piece(
-        &self,
-        piece: &Piece,
-    ) -> Result<Vec<&&Move>, Box<dyn Error>> {
+    pub fn get_legal_move_list_for_piece<'a>(
+        &'a self,
+        piece: &'a Piece,
+    ) -> Result<Vec<&Move>, Box<dyn Error>> {
         let mut result = Vec::new();
         let piece_pos = self.find_piece_on_board(piece)?;
-        for m in piece.piece_type.moves().iter() {
+
+        let moves: Vec<&Move> = piece
+            .piece_type
+            .moves()
+            .iter()
+            .map(|m| if piece.color == Black { m.invert() } else { *m })
+            .collect();
+
+        for m in moves {
             let (x, y) = (piece_pos.0 as i8 + m.x, piece_pos.1 as i8 + m.y);
             if x > 2 || y > 3 || x < 0 || y < 0 {
                 continue;
@@ -132,7 +140,7 @@ impl Board {
     // `Ok` indicates a successful operation and `Err` indicates an error.
     pub fn move_piece(&mut self, piece: &mut Piece, move_: &Move) -> Result<(), Box<dyn Error>> {
         // Check if the move is valid for the piece.
-        if piece.is_move_valid(move_) {
+        if self.get_legal_move_list_for_piece(piece)?.contains(&&move_) {
             // Set the color of the piece to the current turn's color.
             piece.color = self.get_turn();
             // Find the piece on the board.

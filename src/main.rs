@@ -120,7 +120,7 @@ fn move_piece(b: &mut Board, piece: &mut Piece) -> Result<(), Box<dyn Error>> {
     }
 
     for m in m.iter() {
-        print!("{}, ", ***m);
+        print!("{}, ", m);
     }
 
     print!("\n\n");
