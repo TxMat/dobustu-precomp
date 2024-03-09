@@ -57,9 +57,9 @@ impl Board {
     // Initializes the board with the default setup.
     pub fn init() -> Board {
         let mut b = Board::new_empty();
-        b.put(0, 0, &Piece::new(Giraffe, White));
+        b.put(0, 0, &Piece::new(Elephant, White));
         b.put(1, 0, &Piece::new(Lion, White));
-        b.put(2, 0, &Piece::new(Elephant, White));
+        b.put(2, 0, &Piece::new(Giraffe, White));
         b.put(1, 1, &Piece::new(Chick, White));
         b.put(1, 2, &Piece::new(Chick, Black));
         b.put(2, 3, &Piece::new(Elephant, Black));
@@ -78,6 +78,52 @@ impl Board {
             }
         }
         Err(GameError::PieceNotInBoard.into())
+    }
+
+    pub fn get_curent_player_piece_list(&self) -> Vec<Piece> {
+        let mut result = Vec::new();
+        for y in 0..4 {
+            for x in 0..3 {
+                if let Some(p) = self.get(x, y) {
+                    if p.color == self.get_turn() {
+                        result.push(p);
+                    }
+                }
+            }
+        }
+        result
+    }
+
+    pub fn get_legal_move_list_for_piece(
+        &self,
+        piece: &Piece,
+    ) -> Result<Vec<&&Move>, Box<dyn Error>> {
+        let mut result = Vec::new();
+        let piece_pos = self.find_piece_on_board(piece)?;
+        for m in piece.piece_type.moves().iter() {
+            let (x, y) = (piece_pos.0 as i8 + m.x, piece_pos.1 as i8 + m.y);
+            if x > 2 || y > 3 || x < 0 || y < 0 {
+                continue;
+            }
+            let target_pos = (x as usize, y as usize);
+            let piece_on_the_way = self.get(target_pos.0, target_pos.1);
+            if let Some(p) = piece_on_the_way {
+                if p.color != piece.color {
+                    result.push(m);
+                }
+            } else {
+                result.push(m);
+            }
+        }
+        Ok(result)
+    }
+
+    pub fn get_curent_player_cemetery(&self) -> Vec<Piece> {
+        match self.get_turn() {
+            White => self.white_cemetery.clone(),
+            Black => self.black_cemetery.clone(),
+            _ => unreachable!(),
+        }
     }
 
     // Moves a piece on the board if the move is valid.
@@ -106,7 +152,7 @@ impl Board {
             let piece_on_the_way = self.get(target_pos.0, target_pos.1);
 
             // If there is a piece at the target position, check if it's the same color as the current player.
-            if let Some(p) = piece_on_the_way {
+            if let Some(mut p) = piece_on_the_way {
                 if p.color == current_player_color {
                     return Err(GameError::IllegalMove.into());
                 }
@@ -120,6 +166,7 @@ impl Board {
                     Black => &mut self.black_cemetery,
                     _ => unreachable!(),
                 };
+                p.color = current_player_color;
                 cemetery.push(p);
             }
 
@@ -165,19 +212,13 @@ impl Board {
     }
 
     // Drops a piece onto the board.
-    pub fn drop_piece(
-        &mut self,
-        piece: &Piece,
-        color: Color,
-        x: usize,
-        y: usize,
-    ) -> Result<(), Box<dyn Error>> {
+    pub fn drop_piece(&mut self, piece: &Piece, x: usize, y: usize) -> Result<(), Box<dyn Error>> {
         // Check if the target position is occupied.
         if self.get(x, y).is_some() {
             Err(GameError::IllegalMove.into())
         } else {
             // Check if the piece is in the current player's cemetery.
-            let cemetary = match color {
+            let cemetary = match piece.color {
                 White => &mut self.white_cemetery,
                 Black => &mut self.black_cemetery,
                 _ => unreachable!(),
@@ -191,6 +232,7 @@ impl Board {
                 Ok(())
             } else {
                 // If the piece is not in the cemetery, return an error.
+                // better error
                 Err(GameError::IllegalMove.into())
             }
         }

@@ -1,23 +1,24 @@
+use board::Board;
 use std::error::Error;
 use std::fmt::Display;
-use board::Board;
 
 #[derive(PartialEq, Eq)]
 pub enum Result {
     Win,
     Lose,
-    Intermediate(Vec<Board>)
+    Intermediate(Vec<Board>),
 }
 
 #[derive(Debug)]
 pub enum GameError {
-    IllegalMove,
     OutOfBounds,
-    NoPiece,
     PieceNotInBoard,
     NotYourPiece,
     GameOver,
-    Unknown
+    CantMoveAnywhere,
+    InavlidPiece,
+    InvalidMove,
+    IllegalMove,
 }
 
 impl Display for GameError {
@@ -25,11 +26,12 @@ impl Display for GameError {
         match self {
             GameError::IllegalMove => write!(f, "Illegal move"),
             GameError::OutOfBounds => write!(f, "Out of bounds"),
-            GameError::NoPiece => write!(f, "No piece"),
             GameError::PieceNotInBoard => write!(f, "Piece not in board"),
             GameError::NotYourPiece => write!(f, "Not your piece"),
             GameError::GameOver => write!(f, "Game over"),
-            GameError::Unknown => write!(f, "Unknown error")
+            GameError::CantMoveAnywhere => write!(f, "Can't move anywhere"),
+            GameError::InavlidPiece => write!(f, "Invalid piece"),
+            GameError::InvalidMove => write!(f, "Invalid move"),
         }
     }
 }

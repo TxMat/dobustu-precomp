@@ -1,8 +1,10 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 
+use std::fmt::Display;
+
 /// Represents a move in the game.
 /// Each move has an x and y coordinate.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Move {
     // The x coordinate of the move
     pub(crate) x: i8,
@@ -27,3 +29,20 @@ pub const MOVE_ELEPHANT: &[&Move] = &[MOVE_NW,         MOVE_NE,                 
 pub const MOVE_GIRAFFE: &[&Move] =  &[         MOVE_N,          MOVE_W, MOVE_E,          MOVE_S         ];
 pub const MOVE_CHICK:   &[&Move] =  &[         MOVE_N                                                   ];
 pub const MOVE_HEN:     &[&Move] =  &[MOVE_NW, MOVE_N, MOVE_NE, MOVE_W, MOVE_E,          MOVE_S         ];
+
+impl Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match (self.x, self.y) {
+            (-1, 1) => write!(f, "NW"),
+            (0, 1) => write!(f, "N"),
+            (1, 1) => write!(f, "NE"),
+            (-1, 0) => write!(f, "W"),
+            (0, 0) => write!(f, "X"),
+            (1, 0) => write!(f, "E"),
+            (-1, -1) => write!(f, "SW"),
+            (0, -1) => write!(f, "S"),
+            (1, -1) => write!(f, "SE"),
+            _ => write!(f, "Unknown"),
+        }
+    }
+}
