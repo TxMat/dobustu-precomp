@@ -1,6 +1,3 @@
-use std::error::Error;
-use std::io::Write;
-
 mod board_generator;
 mod play_game;
 

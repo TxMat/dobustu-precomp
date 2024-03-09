@@ -14,7 +14,7 @@ pub(crate) fn main() {
 
     let mut boards = vec![Board::init()];
     let mut visited = std::collections::HashSet::new();
-    let mut item_counts = vec![0, 0, 0];
+    let mut item_counts = [0, 0, 0];
 
     let path = "boards.txt";
     let f = File::create(path).expect("unable to create file");
@@ -37,7 +37,7 @@ pub(crate) fn main() {
             }
         };
 
-        write!(f, "{}\n", b.show_file()).unwrap();
+        writeln!(f, "{}", b.show_file()).unwrap();
 
         item_counts[(1 - r) as usize] += 1;
         if visited.len() % 1000000 == 0 {

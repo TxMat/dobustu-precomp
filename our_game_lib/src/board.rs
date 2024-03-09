@@ -1,6 +1,5 @@
 /// todo divide the code in smaller functions
 use std::error::Error;
-use std::fmt::format;
 use std::hash::Hash;
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
@@ -335,7 +334,7 @@ impl Board {
 
     pub fn get_hash(&self) -> String {
         let mut s = String::new();
-        for y in (0..4) {
+        for y in 0..4 {
             for x in 0..3 {
                 match self.get(x, y) {
                     Some(p) => {
