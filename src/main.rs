@@ -7,20 +7,17 @@ use log::{error, info, warn};
 use game_helper::board::Board;
 use game_helper::moves::{MOVE_E, MOVE_N, MOVE_NE, MOVE_NW, MOVE_S, MOVE_SE, MOVE_SW, MOVE_W};
 use game_helper::piece::{Color, Piece, PieceType};
-use game_helper::structs::GameError::{CantMoveAnywhere, InvalidMove};
+use game_helper::structs::GameError::{CantMoveAnywhere, EmptyCemetary, InavlidPiece, InvalidMove};
 
 fn main() {
     let mut b = Board::init();
 
     env::set_var("RUST_LOG", "info");
     pretty_env_logger::init();
-
-    print!("\x1B[2J\x1B[1;1H");
-    std::io::stdout().flush().unwrap();
     while !b.is_game_over() {
         // clear the terminal output
         print!("\x1B[2J\x1B[1;1H");
-        std::io::stdout().flush().unwrap();
+        flush();
 
         warn!("{:?}'s turn", b.get_turn());
         b.show();
@@ -31,7 +28,7 @@ fn main() {
             print!("{}, ", p.show());
         }
         print!("\n\n");
-        std::io::stdout().flush().unwrap();
+        flush();
 
         match choose_piece(&b) {
             Ok(mut piece) => {
@@ -56,6 +53,10 @@ fn main() {
     game_over(&b);
 }
 
+fn flush() {
+    std::io::stdout().flush().unwrap();
+}
+
 fn wait_for_input() {
     let mut input = String::new();
     info!("Press enter to continue...");
@@ -77,8 +78,13 @@ fn choose_piece(board: &Board) -> Result<Piece, String> {
 }
 
 fn drop_piece(b: &mut Board) -> Result<(), Box<dyn Error>> {
-    info!("Enter piece to drop: ");
     let available_pieces = b.get_curent_player_cemetery();
+
+    if available_pieces.is_empty() {
+        return Err(EmptyCemetary.into());
+    }
+
+    info!("Enter piece to drop: ");
     for p in &available_pieces {
         print!("{}, ", p.show());
     }
@@ -87,7 +93,7 @@ fn drop_piece(b: &mut Board) -> Result<(), Box<dyn Error>> {
 
     match choose_piece(&b) {
         Ok(p) => drop_piece_coors(b, &p),
-        Err(_) => Err("aa".into()),
+        Err(_) => Err(InavlidPiece.into()),
     }
 }
 

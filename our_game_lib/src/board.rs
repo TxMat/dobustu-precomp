@@ -1,3 +1,4 @@
+/// todo divide the code in smaller functions
 use std::error::Error;
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
@@ -157,8 +158,10 @@ impl Board {
                     return Err(GameError::IllegalMove.into());
                 }
                 // If the piece at the target position is a Lion, the current player wins.
-                if p.piece_type == Lion {
-                    self.winner = Some(current_player_color);
+                match p.piece_type {
+                    Lion => self.winner = Some(current_player_color),
+                    PieceType::Hen => p.piece_type = Chick,
+                    _ => (),
                 }
                 // Add the piece at the target position to the current player's cemetery.
                 let cemetery = match current_player_color {

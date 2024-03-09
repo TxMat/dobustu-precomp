@@ -15,6 +15,7 @@ pub enum GameError {
     PieceNotInBoard,
     NotYourPiece,
     GameOver,
+    EmptyCemetary,
     CantMoveAnywhere,
     InavlidPiece,
     InvalidMove,
@@ -32,6 +33,7 @@ impl Display for GameError {
             GameError::CantMoveAnywhere => write!(f, "Can't move anywhere"),
             GameError::InavlidPiece => write!(f, "Invalid piece"),
             GameError::InvalidMove => write!(f, "Invalid move"),
+            GameError::EmptyCemetary => write!(f, "Empty Cemetary"),
         }
     }
 }
