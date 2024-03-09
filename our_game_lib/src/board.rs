@@ -131,7 +131,6 @@ impl Board {
         match self.get_turn() {
             White => self.white_cemetery.clone(),
             Black => self.black_cemetery.clone(),
-            _ => unreachable!(),
         }
     }
 
@@ -175,7 +174,6 @@ impl Board {
                 let cemetery = match current_player_color {
                     White => &mut self.white_cemetery,
                     Black => &mut self.black_cemetery,
-                    _ => unreachable!(),
                 };
                 p.color = current_player_color;
                 cemetery.push(p);
@@ -232,7 +230,6 @@ impl Board {
             let cemetary = match piece.color {
                 White => &mut self.white_cemetery,
                 Black => &mut self.black_cemetery,
-                _ => unreachable!(),
             };
             if cemetary.contains(piece) {
                 // If the piece is in the cemetery, remove it from the cemetery and place it on the board.
