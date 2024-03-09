@@ -43,7 +43,7 @@ pub(crate) fn main() {
         writeln!(f, "{}", b.show_file()).unwrap();
 
         item_counts[(1 - r) as usize] += 1;
-        if visited.len() % 5000000 == 0 {
+        if visited.len() % 2000000 == 0 {
             let stat_time = last_time.elapsed().as_millis();
             let total = item_counts[0] + item_counts[1] + item_counts[2];
             info!(
@@ -57,7 +57,7 @@ pub(crate) fn main() {
             );
             info!(
                 "Current Generation Speed: {} Mboards/s",
-                1000000 / stat_time
+                2000000 / stat_time
             );
             info!(
                 "Average Generation Speed: {} Mboards/s",
