@@ -58,14 +58,14 @@ impl Board {
     // Initializes the board with the default setup.
     pub fn init() -> Board {
         let mut b = Board::new_empty();
-        b.put(0, 0, &Piece::new(Elephant, White));
-        b.put(1, 0, &Piece::new(Lion, White));
-        b.put(2, 0, &Piece::new(Giraffe, White));
-        b.put(1, 1, &Piece::new(Chick, White));
-        b.put(1, 2, &Piece::new(Chick, Black));
-        b.put(2, 3, &Piece::new(Elephant, Black));
-        b.put(1, 3, &Piece::new(Lion, Black));
-        b.put(0, 3, &Piece::new(Giraffe, Black));
+        b.put(0, 0, &Piece::new(Elephant, White, false));
+        b.put(1, 0, &Piece::new(Lion, White, false));
+        b.put(2, 0, &Piece::new(Giraffe, White, false));
+        b.put(1, 1, &Piece::new(Chick, White, false));
+        b.put(1, 2, &Piece::new(Chick, Black, false));
+        b.put(2, 3, &Piece::new(Elephant, Black, false));
+        b.put(1, 3, &Piece::new(Lion, Black, false));
+        b.put(0, 3, &Piece::new(Giraffe, Black, false));
         b
     }
 
@@ -170,6 +170,9 @@ impl Board {
                     PieceType::Hen => p.piece_type = Chick,
                     _ => (),
                 }
+                if p.is_duplicated {
+                    p.is_duplicated = false;
+                }
                 // Add the piece at the target position to the current player's cemetery.
                 let cemetery = match current_player_color {
                     White => &mut self.white_cemetery,
@@ -184,11 +187,11 @@ impl Board {
 
             // If the piece is a Chick and it reaches the last row, it becomes a Hen.
             if piece.piece_type == Chick && (target_pos.1 == 0 || target_pos.1 == 3) {
-                self.put(
-                    target_pos.0,
-                    target_pos.1,
-                    &Piece::new(PieceType::Hen, current_player_color),
-                );
+                let mut hen = Piece::new(PieceType::Hen, current_player_color, false);
+                if self.find_piece_on_board(&hen).is_ok() {
+                    hen.is_duplicated = true;
+                }
+                self.put(target_pos.0, target_pos.1, &hen);
             } else {
                 // Otherwise, move the piece to the target position.
                 self.put(target_pos.0, target_pos.1, piece);
@@ -221,7 +224,12 @@ impl Board {
     }
 
     // Drops a piece onto the board.
-    pub fn drop_piece(&mut self, piece: &Piece, x: usize, y: usize) -> Result<(), Box<dyn Error>> {
+    pub fn drop_piece(
+        &mut self,
+        piece: &mut Piece,
+        x: usize,
+        y: usize,
+    ) -> Result<(), Box<dyn Error>> {
         // Check if the target position is occupied.
         if self.get(x, y).is_some() {
             Err(GameError::IllegalMove.into())
@@ -234,6 +242,9 @@ impl Board {
             if cemetary.contains(piece) {
                 // If the piece is in the cemetery, remove it from the cemetery and place it on the board.
                 cemetary.retain(|p| p != piece);
+                if self.find_piece_on_board(piece).is_ok() {
+                    piece.is_duplicated = true;
+                }
                 self.put(x, y, piece);
                 // Switch turns.
                 self.is_white_turn = !self.is_white_turn;
@@ -295,7 +306,7 @@ impl Board {
                     "{} ",
                     match self.get(x - 1, y) {
                         Some(p) => p.show(),
-                        None => ' ',
+                        None => " ".to_string(),
                     }
                 ),
             }

@@ -68,11 +68,16 @@ fn choose_piece(board: &Board) -> Result<Piece, String> {
     std::io::stdin().read_line(&mut input).unwrap();
 
     match input.trim().to_lowercase().as_str() {
-        "c" => Ok(Piece::new(PieceType::Chick, board.get_turn())),
-        "g" => Ok(Piece::new(PieceType::Giraffe, board.get_turn())),
-        "e" => Ok(Piece::new(PieceType::Elephant, board.get_turn())),
-        "l" => Ok(Piece::new(PieceType::Lion, board.get_turn())),
-        "h" => Ok(Piece::new(PieceType::Hen, board.get_turn())),
+        "c" => Ok(Piece::new(PieceType::Chick, board.get_turn(), false)),
+        "c*" => Ok(Piece::new(PieceType::Chick, board.get_turn(), true)),
+        "g" => Ok(Piece::new(PieceType::Giraffe, board.get_turn(), false)),
+        "g*" => Ok(Piece::new(PieceType::Giraffe, board.get_turn(), true)),
+        "e" => Ok(Piece::new(PieceType::Elephant, board.get_turn(), false)),
+        "e*" => Ok(Piece::new(PieceType::Elephant, board.get_turn(), true)),
+        "l" => Ok(Piece::new(PieceType::Lion, board.get_turn(), false)),
+        "l*" => Ok(Piece::new(PieceType::Lion, board.get_turn(), true)),
+        "h" => Ok(Piece::new(PieceType::Hen, board.get_turn(), false)),
+        "h*" => Ok(Piece::new(PieceType::Hen, board.get_turn(), true)),
         _ => Err(input.trim().to_lowercase()),
     }
 }
@@ -92,12 +97,12 @@ fn drop_piece(b: &mut Board) -> Result<(), Box<dyn Error>> {
     std::io::stdout().flush().unwrap();
 
     match choose_piece(&b) {
-        Ok(p) => drop_piece_coors(b, &p),
+        Ok(mut p) => drop_piece_coors(b, &mut p),
         Err(_) => Err(InavlidPiece.into()),
     }
 }
 
-fn drop_piece_coors(b: &mut Board, piece: &Piece) -> Result<(), Box<dyn Error>> {
+fn drop_piece_coors(b: &mut Board, piece: &mut Piece) -> Result<(), Box<dyn Error>> {
     info!("Enter coors to drop piece: (without spaces)");
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
@@ -107,7 +112,7 @@ fn drop_piece_coors(b: &mut Board, piece: &Piece) -> Result<(), Box<dyn Error>> 
     let x = coors / 10;
     let y = coors % 10;
 
-    b.drop_piece(&piece, x, y)
+    b.drop_piece(piece, x, y)
 }
 
 fn move_piece(b: &mut Board, piece: &mut Piece) -> Result<(), Box<dyn Error>> {
@@ -144,10 +149,10 @@ fn move_piece(b: &mut Board, piece: &mut Piece) -> Result<(), Box<dyn Error>> {
 }
 
 fn game_over(b: &Board) {
-    error!("Game Over");
+    info!("Game Over");
     match b.winner {
-        Some(Color::White) => println!("White wins"),
-        Some(Color::Black) => println!("Black wins"),
-        _ => unreachable!("Game over but no winner"),
+        Some(Color::White) => info!("White wins"),
+        Some(Color::Black) => info!("Black wins"),
+        None => info!("It's a draw (somehow)"),
     }
 }

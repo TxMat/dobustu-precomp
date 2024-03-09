@@ -10,6 +10,7 @@ pub struct Piece {
     pub piece_type: PieceType,
     // The color of the piece (White, Black)
     pub color: Color,
+    pub is_duplicated: bool,
 }
 
 /// Represents the color of a piece.
@@ -33,15 +34,23 @@ pub enum PieceType {
 
 impl Piece {
     /// Creates a new piece with the given type and color.
-    pub fn new(piece_type: PieceType, color: Color) -> Piece {
-        Piece { piece_type, color }
+    pub fn new(piece_type: PieceType, color: Color, is_duplicated: bool) -> Piece {
+        Piece {
+            piece_type,
+            color,
+            is_duplicated,
+        }
     }
 
-    pub fn show(&self) -> char {
-        match self.color {
+    pub fn show(&self) -> String {
+        let s = match self.color {
             Color::White => self.piece_type.show(),
             Color::Black => self.piece_type.show().to_ascii_uppercase(),
+        };
+        if self.is_duplicated {
+            return format!("{}*", s);
         }
+        s.to_string()
     }
 
     pub fn is_move_valid(&self, move_: &Move) -> bool {
