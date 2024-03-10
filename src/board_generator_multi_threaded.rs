@@ -21,23 +21,32 @@ pub(crate) async fn main() {
     let master_visited = Arc::new(Mutex::new(HashSet::new()));
     let master_item_counts = Arc::new(Mutex::new([0, 0, 0]));
 
+    let path = "boards_init.txt";
+    let f = File::create(path).expect("unable to create file");
+    let mut f = Arc::new(Mutex::new(BufWriter::new(f)));
+
     // pre populate boards
+    let mut fguard = f.lock().await;
     calc(
         999,
         boards[0].clone(),
         &mut boards,
         master_visited.clone(),
         &mut *master_item_counts.lock().await,
+        &mut *fguard,
     )
     .await;
+    drop(fguard);
 
     for b in boards.clone() {
+        let mut fguard = f.lock().await;
         calc(
             999,
             b,
             &mut boards,
             master_visited.clone(),
             &mut *master_item_counts.lock().await,
+            &mut *fguard,
         )
         .await;
     }
@@ -45,10 +54,6 @@ pub(crate) async fn main() {
     for b in boards.clone() {
         b.show();
     }
-
-    // let path = "boards.txt";
-    // let f = File::create(path).expect("unable to create file");
-    // let mut f = BufWriter::new(f);
 
     let mut handles = vec![];
 
@@ -65,6 +70,12 @@ pub(crate) async fn main() {
             let mut thread_board = vec![b];
             let mut item_counts_clone = [0, 0, 0];
 
+            let path = "boards_thread_".to_string()
+                + &from_digit(thread as u32, 10).unwrap().to_string()
+                + ".txt";
+            let f = File::create(path).expect("unable to create file");
+            let mut f = BufWriter::new(f);
+
             while let Some(b) = thread_board.pop() {
                 calc(
                     thread,
@@ -72,6 +83,7 @@ pub(crate) async fn main() {
                     &mut thread_board,
                     visited_thread.clone(),
                     &mut item_counts_clone,
+                    &mut f,
                 )
                 .await;
 
@@ -189,6 +201,7 @@ async fn calc(
     boards: &mut Vec<Board>,
     visited: Arc<Mutex<HashSet<Board>>>,
     item_counts: &mut [u32; 3],
+    f: &mut BufWriter<File>,
 ) {
     if visited.lock().await.contains(&b) {
         return;
@@ -204,6 +217,8 @@ async fn calc(
             item_counts[2] += 1;
         }
     };
+
+    writeln!(f, "{}", b.show_file()).unwrap();
 
     let mut vg = visited.lock().await;
 
