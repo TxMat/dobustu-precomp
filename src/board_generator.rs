@@ -15,7 +15,8 @@ pub(crate) fn main() {
     let stating_time = std::time::Instant::now();
     let mut last_time = stating_time.clone();
 
-    let mut boards = vec![Board::init()];
+    let mut boards = std::collections::VecDeque::new();
+    boards.push_back(Board::init());
     let mut visited = std::collections::HashSet::new();
     let mut item_counts = [0, 0, 0];
 
@@ -23,26 +24,26 @@ pub(crate) fn main() {
     let f = File::create(path).expect("unable to create file");
     let mut f = BufWriter::new(f);
 
-    while let Some(b) = boards.pop() {
+    while let Some(b) = boards.pop_front() {
         if visited.contains(&b) {
             continue;
         };
-        visited.insert(b.clone());
 
-        let r = match b.next() {
-            GameResult::WhiteWin => 1,
-            GameResult::BlackWin => 0,
+        match b.next() {
+            GameResult::WhiteWin => item_counts[1] += 1,
+            GameResult::BlackWin => item_counts[0] += 1,
             GameResult::Intermediate(bs) => {
                 for b in bs {
-                    boards.push(b)
+                    boards.push_back(b)
                 }
-                -1
+                item_counts[2] += 1;
             }
         };
 
         writeln!(f, "{}", b.show_file()).unwrap();
+        visited.insert(b);
 
-        item_counts[(1 - r) as usize] += 1;
+        //item_counts[(1 - r) as usize] += 1;
         if visited.len() % 2000000 == 0 {
             let stat_time = last_time.elapsed().as_millis();
             let total = item_counts[0] + item_counts[1] + item_counts[2];
