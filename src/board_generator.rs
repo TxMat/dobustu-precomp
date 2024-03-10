@@ -44,7 +44,7 @@ pub(crate) fn main() {
         visited.insert(b);
 
         //item_counts[(1 - r) as usize] += 1;
-        if visited.len() % 2000000 == 0 {
+        if visited.len() % 100000 == 0 {
             let stat_time = last_time.elapsed().as_millis();
             let total = item_counts[0] + item_counts[1] + item_counts[2];
             info!(
