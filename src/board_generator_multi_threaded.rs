@@ -18,6 +18,8 @@ pub(crate) async fn main() {
     let stating_time = std::time::Instant::now();
     let mut last_time = stating_time.clone();
 
+    let mut master_visited = Arc::new(Mutex::new(HashSet::new()));
+
     let mut boards = vec![Board::init()];
     let mut item_counts = [0, 0, 0];
 
@@ -25,7 +27,7 @@ pub(crate) async fn main() {
         999,
         boards[0].clone(),
         &mut boards,
-        &mut HashSet::new(),
+        master_visited.clone(),
         &mut item_counts,
     )
     .await;
@@ -38,13 +40,21 @@ pub(crate) async fn main() {
 
     for thread in 0..boards.len() {
         let boards_clone = boards.clone();
+        let visited_clone = master_visited.clone();
+
         let handle = tokio::spawn(async move {
             let b = boards_clone[thread].clone();
             let mut thread_board = vec![b];
-            let mut visited = HashSet::new();
 
             while let Some(b) = thread_board.pop() {
-                calc(thread, b, &mut thread_board, &mut visited, &mut item_counts).await;
+                calc(
+                    thread,
+                    b,
+                    &mut thread_board,
+                    visited_clone.clone(),
+                    &mut item_counts,
+                )
+                .await;
             }
         });
 
@@ -60,10 +70,10 @@ async fn calc(
     thread: usize,
     b: Board,
     boards: &mut Vec<Board>,
-    visited: &mut HashSet<Board>,
+    visited: Arc<Mutex<HashSet<Board>>>,
     item_counts: &mut [i32; 3],
 ) {
-    if visited.contains(&b) {
+    if visited.lock().await.contains(&b) {
         return;
     };
 
@@ -78,10 +88,11 @@ async fn calc(
         }
     };
 
-    visited.insert(b);
+    let mut vg = visited.lock().await;
 
+    vg.insert(b);
     //item_counts[(1 - r) as usize] += 1;
-    if visited.len() % 1000000 == 0 {
+    if vg.len() % 1000000 == 0 {
         display_stats_simple(thread, item_counts);
     }
 }
