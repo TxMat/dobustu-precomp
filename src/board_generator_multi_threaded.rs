@@ -26,7 +26,7 @@ pub(crate) async fn main() {
         999,
         boards[0].clone(),
         &mut boards,
-        &mut *master_visited.lock().await,
+        master_visited.clone(),
         &mut *master_item_counts.lock().await,
     )
     .await;
@@ -36,7 +36,7 @@ pub(crate) async fn main() {
             999,
             b,
             &mut boards,
-            &mut *master_visited.lock().await,
+            master_visited.clone(),
             &mut *master_item_counts.lock().await,
         )
         .await;
@@ -58,11 +58,11 @@ pub(crate) async fn main() {
         let master_visited_clone = master_visited.clone();
         let master_item_counts_clone = master_item_counts.clone();
 
+        let visited_thread = Arc::new(Mutex::new(HashSet::new()));
+
         let handle = tokio::spawn(async move {
             let b = boards_clone[thread].clone();
             let mut thread_board = vec![b];
-
-            let mut visited_clone = HashSet::new();
             let mut item_counts_clone = [0, 0, 0];
 
             while let Some(b) = thread_board.pop() {
@@ -70,42 +70,60 @@ pub(crate) async fn main() {
                     thread,
                     b,
                     &mut thread_board,
-                    &mut visited_clone,
+                    visited_thread.clone(),
                     &mut item_counts_clone,
                 )
                 .await;
 
-                if visited_clone.len() % 1_000_000 == 0 {
-                    // todo collapse this into a function
-                    let mut master_guard = master_visited_clone.lock().await;
-                    master_guard.extend(visited_clone.iter().cloned());
-                    drop(master_guard);
-
-                    visited_clone.clear();
-
-                    let mut master_item_guard = master_item_counts_clone.lock().await;
-                    master_item_guard[0] += item_counts_clone[0];
-                    master_item_guard[1] += item_counts_clone[1];
-                    master_item_guard[2] += item_counts_clone[2];
+                if visited_thread.lock().await.len() > 1_000_000 {
+                    merge_visited(
+                        thread,
+                        &mut *visited_thread.lock().await,
+                        master_visited_clone.clone(),
+                        &mut item_counts_clone,
+                        master_item_counts_clone.clone(),
+                    )
+                    .await;
                 }
             }
 
             // After the thread finishes its DFS, merge any remaining items in its visited HashSet into master_visited
-            let mut master_guard = master_visited_clone.lock().await;
-            master_guard.extend(visited_clone.iter().cloned());
-            drop(master_guard);
-
-            visited_clone.clear();
-
-            let mut master_item_guard = master_item_counts_clone.lock().await;
-            master_item_guard[0] += item_counts_clone[0];
-            master_item_guard[1] += item_counts_clone[1];
-            master_item_guard[2] += item_counts_clone[2];
+            // let mut master_guard = master_visited_clone.lock().await;
+            // master_guard.extend(visited_clone.iter().cloned());
+            // drop(master_guard);
+            //
+            // visited_clone.clear();
+            //
+            // let mut master_item_guard = master_item_counts_clone.lock().await;
+            // master_item_guard[0] += item_counts_clone[0];
+            // master_item_guard[1] += item_counts_clone[1];
+            // master_item_guard[2] += item_counts_clone[2];
 
             info!("Thread {} finished :)", thread);
         });
 
         handles.push(handle);
+    }
+
+    async fn merge_visited(
+        thread_number: usize,
+        visited_clone: &mut HashSet<Board>,
+        master_visited_clone: Arc<Mutex<HashSet<Board>>>,
+        item_counts_clone: &mut [u32; 3],
+        master_item_counts_clone: Arc<Mutex<[u32; 3]>>,
+    ) {
+        info!("Thread {} is merging", thread_number);
+        let mut master_guard = master_visited_clone.lock().await;
+        master_guard.extend(visited_clone.iter().cloned());
+        drop(master_guard);
+
+        visited_clone.clear();
+
+        let mut master_item_guard = master_item_counts_clone.lock().await;
+        master_item_guard[0] += item_counts_clone[0];
+        master_item_guard[1] += item_counts_clone[1];
+        master_item_guard[2] += item_counts_clone[2];
+        info!("Thread {} is done merging", thread_number);
     }
 
     let mut last_time = std::time::Instant::now();
@@ -169,10 +187,10 @@ async fn calc(
     thread: usize,
     b: Board,
     boards: &mut Vec<Board>,
-    visited: &mut HashSet<Board>,
+    visited: Arc<Mutex<HashSet<Board>>>,
     item_counts: &mut [u32; 3],
 ) {
-    if visited.contains(&b) {
+    if visited.lock().await.contains(&b) {
         return;
     };
 
@@ -187,10 +205,12 @@ async fn calc(
         }
     };
 
-    visited.insert(b);
+    let mut vg = visited.lock().await;
+
+    vg.insert(b);
     //item_counts[(1 - r) as usize] += 1;
-    if visited.len() % 1_000_000 == 0 {
-        info!("Thread {} still running: {} visited", thread, visited.len());
+    if vg.len() % 1_000_000 == 0 {
+        info!("Thread {} still running: {} visited", thread, vg.len());
     }
 }
 
