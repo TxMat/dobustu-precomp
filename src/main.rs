@@ -1,4 +1,5 @@
 mod board_generator;
+mod board_generator_2;
 mod board_generator_multi_threaded;
 mod play_game;
 

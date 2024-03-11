@@ -6,7 +6,7 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::sync::Arc;
 
-use log::info;
+use log::{error, info};
 use tokio::sync::Mutex;
 
 use game_helper::board::Board;
@@ -22,31 +22,30 @@ pub(crate) async fn main() {
     let master_item_counts = Arc::new(Mutex::new([0, 0, 0]));
 
     let path = "boards_init.txt";
-    let f = File::create(path).expect("unable to create file");
-    let mut f = Arc::new(Mutex::new(BufWriter::new(f)));
+    let file = File::create(path).expect("unable to create file");
+    let mut f = BufWriter::new(file);
 
     // pre populate boards
-    let mut fguard = f.lock().await;
     calc(
         999,
         boards[0].clone(),
         &mut boards,
         master_visited.clone(),
         &mut *master_item_counts.lock().await,
-        &mut *fguard,
+        &mut f,
+        &mut false,
     )
     .await;
-    drop(fguard);
 
     for b in boards.clone() {
-        let mut fguard = f.lock().await;
         calc(
             999,
             b,
             &mut boards,
             master_visited.clone(),
             &mut *master_item_counts.lock().await,
-            &mut *fguard,
+            &mut f,
+            &mut false,
         )
         .await;
     }
@@ -54,6 +53,8 @@ pub(crate) async fn main() {
     for b in boards.clone() {
         b.show();
     }
+
+    error!("visited: {:?}", master_visited.lock().await);
 
     let mut handles = vec![];
 
@@ -65,14 +66,14 @@ pub(crate) async fn main() {
 
         let visited_thread = Arc::new(Mutex::new(HashSet::new()));
 
+        let mut merged = false;
+
         let handle = tokio::spawn(async move {
             let b = boards_clone[thread].clone();
             let mut thread_board = vec![b];
             let mut item_counts_clone = [0, 0, 0];
 
-            let path = "boards_thread_".to_string()
-                + &from_digit(thread as u32, 10).unwrap().to_string()
-                + ".txt";
+            let path = "boards_thread_".to_string() + thread.to_string().as_str() + ".txt";
             let f = File::create(path).expect("unable to create file");
             let mut f = BufWriter::new(f);
 
@@ -84,10 +85,12 @@ pub(crate) async fn main() {
                     visited_thread.clone(),
                     &mut item_counts_clone,
                     &mut f,
+                    &mut merged,
                 )
                 .await;
 
-                if visited_thread.lock().await.len() > 1_000_000 {
+                if visited_thread.lock().await.len() % 1_000_000 == 0 && !merged {
+                    merged = true;
                     merge_visited(
                         thread,
                         &mut *visited_thread.lock().await,
@@ -119,23 +122,28 @@ pub(crate) async fn main() {
 
     async fn merge_visited(
         thread_number: usize,
-        visited_clone: &mut HashSet<Board>,
-        master_visited_clone: Arc<Mutex<HashSet<Board>>>,
+        visited_clone: &mut HashSet<u128>,
+        master_visited_clone: Arc<Mutex<HashSet<u128>>>,
         item_counts_clone: &mut [u32; 3],
         master_item_counts_clone: Arc<Mutex<[u32; 3]>>,
     ) {
-        info!("Thread {} is merging", thread_number);
+        //info!("Thread {} is merging", thread_number);
         let mut master_guard = master_visited_clone.lock().await;
         master_guard.extend(visited_clone.iter().cloned());
+        visited_clone.extend(master_guard.iter().cloned());
         drop(master_guard);
-
-        visited_clone.clear();
 
         let mut master_item_guard = master_item_counts_clone.lock().await;
         master_item_guard[0] += item_counts_clone[0];
         master_item_guard[1] += item_counts_clone[1];
         master_item_guard[2] += item_counts_clone[2];
-        info!("Thread {} is done merging", thread_number);
+
+        drop(master_item_guard);
+
+        item_counts_clone[0] = 0;
+        item_counts_clone[1] = 0;
+        item_counts_clone[2] = 0;
+        //info!("Thread {} is done merging", thread_number);
     }
 
     let mut last_time = std::time::Instant::now();
@@ -144,7 +152,7 @@ pub(crate) async fn main() {
 
     let stat_thread = tokio::spawn(async move {
         loop {
-            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
             let stat_time = last_time.elapsed().as_millis();
             let master_item_counts_guard = master_item_counts.lock().await;
             let total = master_item_counts_guard.iter().sum::<u32>();
@@ -158,6 +166,13 @@ pub(crate) async fn main() {
                 total
             );
             drop(master_item_counts_guard);
+            let speed = (total as u128 / stating_time.elapsed().as_millis()) / 1000;
+            let time;
+            if speed > 0 {
+                time = 246803167 / speed;
+            } else {
+                time = 0;
+            }
 
             info!(
                 "Generation progress: {}%, in {}s",
@@ -168,14 +183,8 @@ pub(crate) async fn main() {
                 "Current Generation Speed: {} Kboards/s",
                 (total - old_total) as u128 / stat_time
             );
-            info!(
-                "Average Generation Speed: {} Kboards/s",
-                total as u128 / stating_time.elapsed().as_millis()
-            );
-            info!(
-                "Estimated time to finish: {}s",
-                (246803167 - total) as u128 * stat_time / 1000 / 1000000
-            );
+            info!("Average Generation Speed: {} Kboards/s", speed);
+            info!("Estimated time to finish: {}s", time);
             info!(
                 "Estimated time to finish: {}m",
                 (246803167 - total) as u128 * stat_time / 1000 / 1000000 / 60
@@ -199,13 +208,16 @@ async fn calc(
     thread: usize,
     b: Board,
     boards: &mut Vec<Board>,
-    visited: Arc<Mutex<HashSet<Board>>>,
+    visited: Arc<Mutex<HashSet<u128>>>,
     item_counts: &mut [u32; 3],
     f: &mut BufWriter<File>,
+    merged: &mut bool,
 ) {
-    if visited.lock().await.contains(&b) {
+    if visited.lock().await.contains(&b.get_hash_optimized()) {
         return;
     };
+
+    *merged = false;
 
     match b.next() {
         GameResult::WhiteWin => item_counts[1] += 1,
@@ -222,7 +234,7 @@ async fn calc(
 
     let mut vg = visited.lock().await;
 
-    vg.insert(b);
+    vg.insert(b.get_hash_optimized());
     //item_counts[(1 - r) as usize] += 1;
     if vg.len() % 1_000_000 == 0 {
         info!("Thread {} still running: {} visited", thread, vg.len());

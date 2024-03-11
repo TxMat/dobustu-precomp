@@ -1,11 +1,13 @@
 /// todo divide the code in smaller functions
 use std::error::Error;
+use std::fmt::{Binary, LowerHex, UpperHex};
 use std::hash::Hash;
+use std::mem::{size_of, size_of_val};
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
 use piece::Color::{Black, White};
 use piece::Piece;
-use piece::PieceType::{Chick, Elephant, Giraffe, Lion};
+use piece::PieceType::{Chick, Elephant, Giraffe, Hen, Lion};
 use piece::{Color, PieceType};
 use structs::GameError;
 use structs::GameResult::{BlackWin, Intermediate, WhiteWin};
@@ -347,9 +349,74 @@ impl Board {
         s
     }
 
+    pub fn get_hash_optimized(&self) -> u128 {
+        let mut n: u128 = 0;
+        let mut count = 0;
+        for y in 0..4 {
+            for x in 0..3 {
+                if let Some(p) = self.get(x, y) {
+                    let mut piece_value: u8 = match p.piece_type {
+                        Chick => 0,
+                        Giraffe => 2,
+                        Elephant => 4,
+                        Lion => 6,
+                        Hen => 8,
+                    };
+                    if p.color == Black {
+                        piece_value += 1;
+                    }
+                    n += piece_value as u128 * 10_u128.pow(count);
+                    count += 1;
+                    n += (x as u128) * 10_u128.pow(count);
+                    count += 1;
+                    n += (y as u128) * 10_u128.pow(count);
+                    count += 1;
+                }
+            }
+        }
+        for p in self.white_cemetery.iter() {
+            let mut pt = match p.piece_type {
+                Chick => 0,
+                Giraffe => 2,
+                Elephant => 4,
+                Lion => 6,
+                Hen => 8,
+            };
+            if p.color == Black {
+                pt += 1;
+            }
+            n += pt as u128 * 10_u128.pow(count);
+            count += 1;
+            n += 9 * 10_u128.pow(count);
+            count += 1;
+            n += 9 * 10_u128.pow(count);
+            count += 1;
+        }
+        for p in self.black_cemetery.iter() {
+            let mut pt = match p.piece_type {
+                Chick => 0,
+                Giraffe => 2,
+                Elephant => 4,
+                Lion => 6,
+                Hen => 8,
+            };
+            if p.color == Black {
+                pt += 1;
+            }
+            n += pt as u128 * 10_u128.pow(count);
+            count += 1;
+            n += 8 * 10_u128.pow(count);
+            count += 1;
+            n += 8 * 10_u128.pow(count);
+            count += 1;
+        }
+        //println!("Hash: {}", n);
+        n
+    }
+
     pub fn show_file(&self) -> String {
         let mut s = String::new();
-        s.push_str(self.get_hash().as_str());
+        s.push_str(self.get_hash_optimized().to_string().as_str());
         s.push_str("\n");
         s.push_str("##############\n");
 
