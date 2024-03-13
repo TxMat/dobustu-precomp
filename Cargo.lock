@@ -57,7 +57,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 name = "dobustu-precomp"
 version = "0.1.0"
 dependencies = [
- "game_helper",
+ "game_helper_v2",
  "log",
  "pretty_env_logger",
  "rand",
@@ -78,7 +78,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "game_helper"
+name = "game_helper_v2"
 version = "0.1.0"
 dependencies = [
  "log",

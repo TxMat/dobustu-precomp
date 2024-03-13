@@ -3,6 +3,9 @@ use std::error::Error;
 use std::fmt::{Binary, LowerHex, UpperHex};
 use std::hash::Hash;
 use std::mem::{size_of, size_of_val};
+
+use log::info;
+
 // Importing the necessary modules and structs for the Board struct
 use moves::Move;
 use piece::Color::{Black, White};
@@ -70,6 +73,7 @@ impl Board {
         b.put(2, 3, &Piece::new(Elephant, Black, false));
         b.put(1, 3, &Piece::new(Lion, Black, false));
         b.put(0, 3, &Piece::new(Giraffe, Black, false));
+        info!("size of board {}", size_of_val(&b));
         b
     }
 

@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-game_helper = { path = "our_game_lib" }
+game_helper_v2 = { path = "opti_game_lib" }
 rand = "0.9.0-alpha.0"
 log = "0.4.21"
 pretty_env_logger = "0.5.0"
