@@ -171,6 +171,7 @@ impl Board {
         Intermediate(vec![])
     }
 
+    // todo continuer ici
     pub fn compute_new_board(
         state: &[(Position, Piece); 8],
         current_pos: &Position,
