@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::convert::TryInto;
 /// todo divide the code in smaller functions
 use std::error::Error;
@@ -24,8 +25,8 @@ use structs::{GameError, GameResult, Position};
 // Copy: Allows the struct to be copied.
 // PartialEq and Eq: Allows the struct to be compared for equality.
 // Hash: Allows the struct to be used as a key in a HashMap.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Board(u64);
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd, Debug)]
+pub struct Board(pub u64);
 
 impl Board {
     // Creates a new empty board.

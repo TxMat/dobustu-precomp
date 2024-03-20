@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::{env, mem, vec};
 
 use log::info;
@@ -12,16 +13,25 @@ use game_helper_v2::structs::Position::{
     Dead, X0Y0, X0Y1, X0Y2, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y1, X2Y3,
 };
 
+use crate::range_set::RangeSet;
+
+mod range_set;
+
 fn main() {
     env::set_var("RUST_LOG", "info");
     pretty_env_logger::init();
 
+    bench();
+    //calc();
+}
+
+fn calc() {
     let mut item_counts = vec![0, 0, 0];
 
     let mut board_vec = std::collections::VecDeque::new();
     let mut board_vec_temp = std::collections::VecDeque::new();
 
-    let mut visited_black = std::collections::HashSet::new();
+    let mut visited_black = vec![];
 
     let state_1 = [
         (X1Y0, LION_1),
@@ -84,11 +94,11 @@ fn main() {
     board_vec.push_back(b3);
     board_vec.push_back(b4);
 
-    visited_black.insert(b1);
-    visited_black.insert(b2);
-    visited_black.insert(b3);
-    visited_black.insert(b4);
-    visited_black.insert(Board::init());
+    visited_black.push(b1);
+    visited_black.push(b2);
+    visited_black.push(b3);
+    visited_black.push(b4);
+    visited_black.push(Board::init());
 
     // fuckery
 
@@ -142,7 +152,7 @@ fn main() {
             item_counts[(1 - r) as usize] += 1;
 
             if !turn {
-                visited_black.insert(board);
+                visited_black.push(board);
             }
         }
 
@@ -158,4 +168,57 @@ fn main() {
         board_vec_temp.clear();
         depth += 1;
     }
+}
+
+fn bench() {
+    // store 100_000_000 boards in different collections to see who takes less ram
+    // let mut boards = vec![];
+    // let b = Board::init();
+    // info!("starting...");
+    // info!("Size of board: {}", std::mem::size_of_val(&b));
+    // info!("Expected Size of vec board: {}", std::mem::size_of_val(&b) * 100_000_000);
+    // info!("Size of vec before: {}", std::mem::size_of_val(&boards));
+    // for i in 0..1_600_000_000 {
+    //     boards.push(Board(i as u64));
+    // }
+    // info!("done");
+    // info!("Size of vec after: {}", std::mem::size_of_val(&*boards));
+
+    let mut boards = HashMap::new();
+    let b = Board::init();
+    info!("starting...");
+    info!("Size of board: {}", std::mem::size_of_val(&b));
+    info!(
+        "Expected Size of vec board: {}",
+        std::mem::size_of_val(&b) * 100_000_000
+    );
+    info!("Size of vec before: {}", std::mem::size_of_val(&boards));
+    for i in 0..1_600_000_000 {
+        boards.insert(Board(i as u64), Board(i as u64));
+    }
+    info!("done");
+    info!("Size of vec after: {}", std::mem::size_of_val(&boards));
+
+    //
+    // let mut boards = std::collections::HashSet::new();
+    // info!("starting...");
+    // info!("Size of board: {}", std::mem::size_of_val(&b));
+    // info!("Expected Size of vec board: {}", std::mem::size_of_val(&b) * 100_000_000);
+    // info!("Size of vec before: {}", std::mem::size_of_val(&boards));
+    // for i in 0..1_600_000_000 {
+    //     boards.insert(Board(i as u64));
+    // }
+    // info!("done");
+    // info!("Size of vec after: {}", std::mem::size_of_val(&boards));
+
+    // let mut boards = std::collections::BTreeSet::new();
+    // info!("starting...");
+    // info!("Size of board: {}", std::mem::size_of_val(&b));
+    // info!("Expected Size of vec board: {}", std::mem::size_of_val(&b) * 100_000_000);
+    // info!("Size of vec before: {}", std::mem::size_of_val(&boards));
+    // for i in 0..1_600_000_000 {
+    //     boards.insert(Board(i as u64));
+    // }
+    // info!("done");
+    // info!("Size of vec after: {}", std::mem::size_of_val(&boards));
 }
