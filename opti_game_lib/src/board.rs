@@ -21,9 +21,10 @@ use structs::{GameError, GameResult, Position};
 
 // The `derive` attribute automatically implements the specified traits for the struct.
 // Clone: Allows the struct to be duplicated.
+// Copy: Allows the struct to be copied.
 // PartialEq and Eq: Allows the struct to be compared for equality.
 // Hash: Allows the struct to be used as a key in a HashMap.
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Board(u64);
 
 impl Board {
