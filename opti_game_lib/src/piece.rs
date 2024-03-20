@@ -59,11 +59,12 @@ impl Piece {
 
     pub(crate) fn moves(&self) -> &'static [&'static Move] {
         match *self {
-            LION => MOVE_LION,
-            ELEPHANT => MOVE_ELEPHANT,
-            GIRAFFE => MOVE_GIRAFFE,
-            CHICK => MOVE_CHICK,
-            HEN => MOVE_HEN,
+            LION_1 | LION_2 => MOVE_LION,
+            ELEPHANT_1 | ELEPHANT_2 => MOVE_ELEPHANT,
+            GIRAFFE_1 | GIRAFFE_2 => MOVE_GIRAFFE,
+            CHICK_1 | CHICK_2 => MOVE_CHICK,
+            HEN_1 | HEN_2 => MOVE_HEN,
+            _ => panic!("Invalid piece"),
         }
     }
 

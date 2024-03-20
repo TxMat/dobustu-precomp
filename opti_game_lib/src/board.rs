@@ -14,7 +14,9 @@ use piece::{
     LION_1, LION_2,
 };
 use structs::GameResult::{BlackWin, Intermediate, WhiteWin};
-use structs::Position::{X0Y0, X0Y1, X0Y2, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y1, X2Y2, X2Y3};
+use structs::Position::{
+    Dead, X0Y0, X0Y1, X0Y2, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y1, X2Y2, X2Y3,
+};
 use structs::{GameError, GameResult, Position};
 
 // The `derive` attribute automatically implements the specified traits for the struct.
@@ -73,7 +75,7 @@ impl Board {
         let mut count: u8 = 0;
         for (pos, piece) in state.iter() {
             let piece_pos: u8 = (piece.0 << 4) + <&Position as Into<u8>>::into(pos);
-            info!("new piece pos: {:X}", piece_pos);
+            //info!("new piece pos: {:X}", piece_pos);
             let shift = count * 8;
 
             let mask = 0xff << shift;
@@ -102,8 +104,8 @@ impl Board {
         let state = self.get_state();
         let mut count: u8 = 0;
         for (pos, piece) in state.iter() {
-            info!("piece: {:?}, pos: {:?}", piece, pos);
-            info!("count: {:?}", count);
+            //info!("piece: {:?}, pos: {:?}", piece, pos);
+            //info!("count: {:?}", count);
             count += 1;
         }
     }
@@ -117,6 +119,9 @@ impl Board {
             [EMPTY, EMPTY, EMPTY], // y0
         ];
         for (pos, piece) in state.iter() {
+            if *pos == Position::Dead {
+                continue;
+            }
             let x = *pos as u8 % 3;
             let y = *pos as u8 / 3;
             state_processed[y as usize][x as usize] = *piece;
@@ -132,6 +137,9 @@ impl Board {
             [EMPTY, EMPTY, EMPTY], // y0
         ];
         for (pos, piece) in state.iter() {
+            if *pos == Position::Dead {
+                continue;
+            }
             let x = *pos as u8 % 3;
             let y = *pos as u8 / 3;
             state_processed[y as usize][x as usize] = *piece;
@@ -143,9 +151,22 @@ impl Board {
     pub fn get_next_states(&self, is_player_1: bool) -> GameResult {
         let state = self.get_state();
         let state_processed = Self::get_state_processed_from_state(state);
+        let mut boards = vec![];
 
         for (pos, piece) in state.iter() {
             if !piece.is_mine(is_player_1) {
+                continue;
+            }
+            if *pos == Position::Dead {
+                for y in 0..4 {
+                    for x in 0..3 {
+                        // if the position is not empty skip
+                        if state_processed[y][x].0 == 0 {
+                            let new_pos = Position::from((x as u8, y as u8));
+                            boards.push(Self::compute_parachuted_board(&state, &new_pos, piece));
+                        }
+                    }
+                }
                 continue;
             }
             let moves = piece.moves();
@@ -164,11 +185,15 @@ impl Board {
                     if piece_on_new_pos == LION_2 && is_player_1 {
                         return GameResult::WhiteWin;
                     }
-                    let new_b = Self::compute_new_board(&state, pos, &Position::from(new_pos));
+                    boards.push(Self::compute_new_board(
+                        &state,
+                        pos,
+                        &Position::from(new_pos),
+                    ));
                 }
             }
         }
-        Intermediate(vec![])
+        Intermediate(boards)
     }
 
     // todo continuer ici
@@ -182,11 +207,15 @@ impl Board {
             if pos == new_pos {
                 if *piece != EMPTY {
                     *pos = Position::Dead;
-                    if piece == HEN_1 {
-                        *piece = CHICK_1;
-                    } else if piece == HEN_2 {
-                        *piece = CHICK_2;
-                    }
+                    *piece = match *piece {
+                        HEN_1 | CHICK_1 => CHICK_2,
+                        HEN_2 | CHICK_2 => CHICK_1,
+                        ELEPHANT_1 => ELEPHANT_2,
+                        ELEPHANT_2 => ELEPHANT_1,
+                        GIRAFFE_1 => GIRAFFE_2,
+                        GIRAFFE_2 => GIRAFFE_1,
+                        _ => unreachable!("Should not happen"),
+                    };
                 }
             } else if pos == current_pos {
                 *pos = *new_pos;
@@ -203,11 +232,33 @@ impl Board {
         b
     }
 
+    pub fn compute_parachuted_board(
+        state: &[(Position, Piece); 8],
+        new_pos: &Position,
+        piece: &Piece,
+    ) -> Board {
+        let mut new_state = state.clone();
+        for (pos, p) in new_state.iter_mut() {
+            if *p == *piece && *pos == Dead {
+                *pos = *new_pos;
+                break;
+            }
+        }
+        if new_state == *state {
+            panic!("Unchancged state");
+        }
+        let mut b = Board::new_empty();
+        b.put_state(new_state);
+        b
+    }
+
     // ugly
     pub fn debug_show_board_2(&self) {
         println!("##############");
 
         let state = self.get_state();
+        let mut white_cemetery = vec![];
+        let mut black_cemetery = vec![];
 
         let mut state_processed: [[Piece; 3]; 4] = [
             [EMPTY, EMPTY, EMPTY], // y3
@@ -217,6 +268,18 @@ impl Board {
         ];
 
         for (pos, piece) in state.iter() {
+            if pos == &Position::Dead {
+                match *piece {
+                    CHICK_1 | GIRAFFE_1 | ELEPHANT_1 | LION_1 | HEN_1 => {
+                        white_cemetery.push(*piece);
+                    }
+                    CHICK_2 | GIRAFFE_2 | ELEPHANT_2 | LION_2 | HEN_2 => {
+                        black_cemetery.push(*piece);
+                    }
+                    _ => unreachable!("Should not happen"),
+                }
+                continue;
+            }
             let x = *pos as u8 % 3;
             let y = *pos as u8 / 3;
             state_processed[y as usize][x as usize] = *piece;
@@ -247,7 +310,22 @@ impl Board {
 
             println!();
         }
-        println!("##############\n");
+        println!("##############");
+        println!(
+            "White cemetery: {:?}",
+            white_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        );
+        println!(
+            "Black cemetery: {:?}",
+            black_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        );
+        println!();
     }
 
     // Removes the piece at the given coordinates.
@@ -268,22 +346,7 @@ impl Board {
             (X1Y1, CHICK_1),
             (X1Y2, CHICK_2),
         ];
-        error!("size of state {}", size_of_val(&state));
         b.put_state(state);
-
-        enum test {
-            a,
-            b,
-        }
-
-        struct letgo {
-            a: test,
-        }
-
-        let a = letgo { a: test::a };
-        info!("size of letgo {}", size_of_val(&a));
-
-        info!("size of board {}", size_of_val(&b));
         b
     }
 }

@@ -69,7 +69,7 @@ impl Into<(u8, u8)> for &Position {
             Position::X0Y3 => (0, 3),
             Position::X1Y3 => (1, 3),
             Position::X2Y3 => (2, 3),
-            Position::Dead => (0, 0),
+            Position::Dead => (9, 9),
         }
     }
 }
@@ -89,7 +89,7 @@ impl Into<(i8, i8)> for &Position {
             Position::X0Y3 => (0, 3),
             Position::X1Y3 => (1, 3),
             Position::X2Y3 => (2, 3),
-            Position::Dead => (0, 0),
+            Position::Dead => (9, 9),
         }
     }
 }
