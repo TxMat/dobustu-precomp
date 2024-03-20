@@ -19,7 +19,7 @@ fn main() {
     let mut item_counts = vec![0, 0, 0];
 
     let mut board_vec = std::collections::VecDeque::new();
-    let mut board_vec_temp: Vec<Board> = Vec::new();
+    let mut board_vec_temp = std::collections::VecDeque::new();
 
     let mut visited_black = std::collections::HashSet::new();
 
@@ -126,11 +126,11 @@ fn main() {
                     for b in bs {
                         match turn {
                             true => {
-                                board_vec_temp.push(b);
+                                board_vec_temp.push_back(b);
                             }
                             false => {
                                 if !visited_black.contains(&b) {
-                                    board_vec_temp.push(b);
+                                    board_vec_temp.push_back(b);
                                 }
                             }
                         }
@@ -153,8 +153,8 @@ fn main() {
         );
 
         turn = !turn;
-        //mem::swap(&mut board_vec, &mut board_vec_temp);
-        board_vec = board_vec_temp.drain(..).collect();
+        mem::swap(&mut board_vec, &mut board_vec_temp);
+        //board_vec = board_vec_temp.drain(..).collect();
         board_vec_temp.clear();
         depth += 1;
     }
