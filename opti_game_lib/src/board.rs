@@ -172,7 +172,10 @@ impl Board {
             let moves = piece.moves();
             for m in moves {
                 let converted_pos = <&Position as Into<(i8, i8)>>::into(pos);
-                let new_pos = (converted_pos.0 + m.x, converted_pos.1 + m.y);
+                let new_pos = match is_player_1 {
+                    true => (converted_pos.0 + m.x, converted_pos.1 + m.y),
+                    false => (converted_pos.0 - m.x, converted_pos.1 - m.y),
+                };
                 if new_pos.0 < 0 || new_pos.0 > 2 || new_pos.1 < 0 || new_pos.1 > 3 {
                     continue;
                 }
