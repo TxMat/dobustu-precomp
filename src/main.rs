@@ -8,10 +8,10 @@ use game_helper_v2::board::Board;
 use game_helper_v2::piece::{
     Piece, CHICK_1, CHICK_2, ELEPHANT_1, ELEPHANT_2, EMPTY, GIRAFFE_1, GIRAFFE_2, LION_1, LION_2,
 };
-use game_helper_v2::structs::GameResult;
 use game_helper_v2::structs::Position::{
     Dead, X0Y0, X0Y1, X0Y2, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y1, X2Y3,
 };
+use game_helper_v2::structs::{GameResult, NextMove};
 
 use crate::range_set::RangeSet;
 
@@ -175,59 +175,67 @@ fn complete_black_comp() {
     let mut to_visit_b: VecDeque<Board> = std::collections::VecDeque::new();
     let mut to_visit_w: VecDeque<Board> = std::collections::VecDeque::new();
 
-    let mut visited_b: HashSet<Board> = std::collections::HashSet::new();
+    let mut visited_player: HashMap<Board, (NextMove, f32)> = std::collections::HashMap::new();
     let mut visited_w: HashSet<Board> = std::collections::HashSet::new();
 
-    let (w, t) = recursive_comp(
+    let proba = recursive_comp(
         true,
         false,
         0,
         &mut to_visit_b,
         &mut to_visit_w,
-        &mut visited_b,
+        &mut visited_player,
         &mut visited_w,
         Board::init(),
     );
 
-    info!("Wins: {}, total: {}", w, t);
+    info!("Proba: {}", proba);
 }
 
 fn recursive_comp(
     is_white: bool,
     is_mine: bool,
     depth: u64,
-    to_visit_b: &mut VecDeque<Board>,
-    to_visit_w: &mut VecDeque<Board>,
-    visited_b: &mut HashSet<Board>,
-    visited_w: &mut HashSet<Board>,
+    to_visit_mine: &mut VecDeque<Board>,
+    to_visit_notmine: &mut VecDeque<Board>,
+    visited_player: &mut HashMap<Board, (NextMove, f32)>,
+    visited_ennemy: &mut HashSet<Board>,
     current: Board,
-) -> (u64, u64) {
-    if depth >= 10 {
-        return (0, 0);
+) -> f32 {
+    // killswitch
+    if depth >= 20 {
+        return -1f32;
     }
-    if visited_w.len() % 100_000 == 0 {
-        info!("visited white: {}", visited_w.len());
+
+    // debug
+    if visited_player.len() % 2_000_000 == 0 {
+        info!("visited mine: {}", visited_player.len());
+        info!("mine queue length: {}", to_visit_mine.len());
+        info!("their queue length: {}", to_visit_notmine.len());
     }
-    if visited_b.len() % 100_000 == 0 {
-        info!("visited black: {}", visited_b.len());
+    if visited_ennemy.len() % 2_000_000 == 0 {
+        info!("visited not mine: {}", visited_ennemy.len());
+        info!("mine queue length: {}", to_visit_mine.len());
+        info!("their queue length: {}", to_visit_notmine.len());
     }
+
     // info!("Board at depth: {}", depth);
     // current.debug_show_board_2();
     match current.get_next_states(is_white) {
         GameResult::WhiteWin => {
             // info!("White wins");
             if is_white && is_mine {
-                (1, 1)
+                1f32
             } else {
-                (0, 1)
+                0f32
             }
         }
         GameResult::BlackWin => {
             // info!("Black wins");
             if !is_white && is_mine {
-                (1, 1)
+                1f32
             } else {
-                (0, 1)
+                0f32
             }
         }
         GameResult::Intermediate(board_vec) => {
@@ -236,103 +244,111 @@ fn recursive_comp(
             // info!("Intermediate for depth  {}", depth);
 
             let mut to_visit_count = 0;
-            if is_white {
-                for b in board_vec {
-                    if visited_w.contains(&b) {
-                        // info!("Ignored white board");
-                        // b.debug_show_board_2();
+            let mut moves: Vec<(Board, f32)> = vec![];
+
+            for b in board_vec {
+                if is_mine {
+                    if let Some((_, p)) = visited_player.get(&b) {
+                        if *p >= 0f32 {
+                            moves.push((b, *p));
+                        }
                         continue;
                     }
-                    to_visit_w.push_back(b);
-                    to_visit_count += 1;
-                    // info!("Intermediate white board");
+                    // info!("Ignored white board");
                     // b.debug_show_board_2();
-                }
-            } else {
-                for b in board_vec {
-                    if visited_b.contains(&b) {
+                } else {
+                    if visited_ennemy.contains(&b) {
                         // info!("Ignored black board");
                         // b.debug_show_board_2();
                         continue;
                     }
-                    to_visit_b.push_back(b);
-                    to_visit_count += 1;
-                    // info!("Intermediate black board");
-                    // b.debug_show_board_2();
                 }
+
+                if to_visit_mine.contains(&b) {
+                    // info!("Ignored mine board");
+                    // b.debug_show_board_2();
+                    continue;
+                }
+
+                to_visit_mine.push_back(b);
+                to_visit_count += 1;
+                // info!("Intermediate white board");
+                // b.debug_show_board_2();
             }
 
-            let mut count_tuple = (0, 0);
-            let mut moves = vec![];
+            let mut total_proba: f32 = 0f32;
+            let mut proba_number: f32 = 0f32;
             for _ in 0..to_visit_count {
-                let (w, t);
-                let board = if is_white {
-                    match to_visit_w.pop_back() {
-                        Some(board) => {
-                            visited_w.insert(board);
-                            board
+                let board = match to_visit_mine.pop_back() {
+                    Some(board) => {
+                        if is_mine {
+                            visited_ennemy.insert(board);
+                        } else {
+                            visited_player.insert(board, (NextMove(0), -1f32));
                         }
-                        None => {
-                            return count_tuple;
-                        }
+                        board
                     }
-                } else {
-                    match to_visit_b.pop_back() {
-                        Some(board) => {
-                            visited_b.insert(board);
-                            board
-                        }
-                        None => {
-                            return count_tuple;
-                        }
+                    None => {
+                        // to visit empty
+                        return -10f32;
                     }
                 };
 
-                (w, t) = recursive_comp(
+                let proba = recursive_comp(
                     !is_white,
                     !is_mine,
                     depth + 1,
-                    to_visit_b,
-                    to_visit_w,
-                    visited_b,
-                    visited_w,
-                    board.clone(),
+                    to_visit_notmine, // swapped
+                    to_visit_mine,    // swapped
+                    visited_player,
+                    visited_ennemy,
+                    board,
                 );
 
-                if is_mine && t != 0 {
-                    moves.push((board, w as f32 / t as f32));
+                if proba >= 0f32 {
+                    if is_mine {
+                        moves.push((board, proba));
+                    }
+                    total_proba += proba;
+                    proba_number += 1f32;
                 }
-
-                // 0
-                // 1 2 3 4
-                // . . . . 5 5/15
-                // . . . . 1 1/3
-                // . . . . 2 . 4
-                // . . . . 3 . 0
-                // .......
-
-                //
-                // 1 1/3
-
-                count_tuple.0 += w;
-                count_tuple.1 += t;
             }
-            if depth < 4 {
-                if let Some(best_move) = moves.iter().max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
-                {
+
+            if is_mine {
+                let mut best_move = (Board::init(), -1f32);
+                for move_ in moves {
+                    if move_.1 > best_move.1 {
+                        best_move.0 = move_.0;
+                        best_move.1 = move_.1;
+                    }
+                }
+                let next_move = NextMove::new_from_board(&current, &best_move.0);
+                // info!("visited player size before : {}", visited_player.len());
+                // info!("is current in map : {}", visited_player.contains_key(&current));
+                visited_player.insert(current, (next_move, best_move.1));
+                // info!("visited player size after : {}", visited_player.len());
+
+                if depth < 4 {
+                    //
+                    info!("depth: {}, best move: {}", depth, best_move.1);
                     info!("initial board");
                     current.debug_show_board_2();
                     info!("Best Next board");
                     best_move.0.debug_show_board_2();
                 }
-                if count_tuple.1 > 0 {
-                    info!(
-                        "depth: {}, wins: {}, total: {}",
-                        depth, count_tuple.0, count_tuple.1
-                    );
+            }
+
+            // debug if
+            if depth < 4 {
+                if proba_number > 0f32 {
+                    info!("depth: {}, proba: {}", depth, total_proba / proba_number);
                 }
             }
-            return count_tuple;
+
+            if proba_number == 0f32 {
+                return -1f32;
+            }
+            return total_proba / proba_number;
         }
     }
 }

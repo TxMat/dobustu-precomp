@@ -186,16 +186,16 @@ impl Display for GameError {
 
 impl Error for GameError {}
 
-struct NextMove(u8);
+pub struct NextMove(pub u8);
 
 impl NextMove {
-    fn new(piece: Piece, position: Position) -> Self {
+    pub fn new(piece: Piece, position: Position) -> Self {
         let piece_pos: u8 = (piece.0 << 4) + <&Position as Into<u8>>::into(&position);
         //info!("new piece pos: {:X}", piece_pos);
         NextMove(piece_pos)
     }
 
-    fn new_from_board(initial_board: &Board, next_board: &Board) -> Self {
+    pub fn new_from_board(initial_board: &Board, next_board: &Board) -> Self {
         let initial_byte_arr = initial_board.0.to_be_bytes();
         let next_byte_arr = next_board.0.to_be_bytes();
 
