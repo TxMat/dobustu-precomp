@@ -1,4 +1,5 @@
 use board::Board;
+use piece::Piece;
 use std::error::Error;
 use std::fmt::Display;
 
@@ -184,3 +185,56 @@ impl Display for GameError {
 }
 
 impl Error for GameError {}
+
+struct NextMove(u8);
+
+impl NextMove {
+    fn new(piece: Piece, position: Position) -> Self {
+        let piece_pos: u8 = (piece.0 << 4) + <&Position as Into<u8>>::into(&position);
+        //info!("new piece pos: {:X}", piece_pos);
+        NextMove(piece_pos)
+    }
+
+    fn new_from_board(initial_board: &Board, next_board: &Board) -> Self {
+        let initial_byte_arr = initial_board.0.to_be_bytes();
+        let next_byte_arr = next_board.0.to_be_bytes();
+
+        // find the difference between the two boards
+        for i in 0..7 {
+            if initial_byte_arr[i] != next_byte_arr[i] {
+                let piece = (next_byte_arr[i] & 0xf0) >> 4;
+                let pos = next_byte_arr[i] & 0x0f;
+                if pos == Position::Dead as u8 {
+                    continue;
+                }
+                return NextMove((piece << 4) + pos);
+            }
+        }
+        return NextMove(0);
+    }
+}
+
+impl Into<(Piece, Position)> for NextMove {
+    fn into(self) -> (Piece, Position) {
+        let piece = (self.0 & 0xf0) >> 4;
+        let pos = self.0 & 0x0f;
+        (Piece::from(piece), Position::from(pos))
+    }
+}
+
+impl From<(Piece, Position)> for NextMove {
+    fn from(value: (Piece, Position)) -> Self {
+        let piece_pos: u8 = (value.0 .0 << 4) + <&Position as Into<u8>>::into(&value.1);
+        NextMove(piece_pos)
+    }
+}
+
+// let arr = self.0.to_be_bytes();
+//         let pos_u8 = position as u8;
+//         for a in arr.iter() {
+//             let piece = (a & 0xf0) >> 4;
+//             let pos = a & 0x0f;
+//             if pos == pos_u8 {
+//                 return Piece::from(piece);
+//             }
+//         }
