@@ -61,10 +61,10 @@ impl Board {
     // }
 
     // Places a piece at the given coordinates.
-    pub fn put_state(&mut self, mut state: [(Position, Piece); 8]) {
+    pub fn put_state(&mut self, mut state: [(Piece, Position); 8]) {
         state.sort();
         let mut count: u8 = 0;
-        for (pos, piece) in state.iter() {
+        for (piece, pos) in state.iter() {
             let piece_pos: u8 = (piece.0 << 4) + <&Position as Into<u8>>::into(pos);
             //info!("new piece pos: {:X}", piece_pos);
             let shift = count * 8;
@@ -76,16 +76,16 @@ impl Board {
         }
     }
 
-    pub fn get_state(&self) -> [(Position, Piece); 8] {
+    pub fn get_state(&self) -> [(Piece, Position); 8] {
         let arr = self.0.to_le_bytes();
         let mut i: usize = 0;
-        let mut result = [(X0Y0, EMPTY); 8];
+        let mut result = [(EMPTY, X0Y0); 8];
         for piece_pos in arr.iter() {
             let piece = (piece_pos & 0xf0) >> 4;
             let pos = piece_pos & 0x0f;
             let pos = Position::from(pos);
             let piece = Piece::from(piece);
-            result[i] = (pos, piece);
+            result[i] = (piece, pos);
             i += 1;
         }
         result
@@ -99,7 +99,7 @@ impl Board {
             [EMPTY, EMPTY, EMPTY], // y1
             [EMPTY, EMPTY, EMPTY], // y0
         ];
-        for (pos, piece) in state.iter() {
+        for (piece, pos) in state.iter() {
             if *pos == Position::Dead {
                 continue;
             }
@@ -110,14 +110,14 @@ impl Board {
         state_processed
     }
 
-    pub fn get_state_processed_from_state(state: [(Position, Piece); 8]) -> [[Piece; 3]; 4] {
+    pub fn get_state_processed_from_state(state: [(Piece, Position); 8]) -> [[Piece; 3]; 4] {
         let mut state_processed: [[Piece; 3]; 4] = [
             [EMPTY, EMPTY, EMPTY], // y3
             [EMPTY, EMPTY, EMPTY], // y2
             [EMPTY, EMPTY, EMPTY], // y1
             [EMPTY, EMPTY, EMPTY], // y0
         ];
-        for (pos, piece) in state.iter() {
+        for (piece, pos) in state.iter() {
             if *pos == Position::Dead {
                 continue;
             }
@@ -134,7 +134,7 @@ impl Board {
         let state_processed = Self::get_state_processed_from_state(state);
         let mut boards = vec![];
 
-        for (pos, piece) in state.iter() {
+        for (piece, pos) in state.iter() {
             if !piece.is_mine(is_player_1) {
                 continue;
             }
@@ -182,12 +182,12 @@ impl Board {
 
     // todo continuer ici
     pub fn compute_new_board(
-        state: &[(Position, Piece); 8],
+        state: &[(Piece, Position); 8],
         current_pos: &Position,
         new_pos: &Position,
     ) -> Board {
         let mut new_state = state.clone();
-        for (pos, piece) in new_state.iter_mut() {
+        for (piece, pos) in new_state.iter_mut() {
             if pos == new_pos {
                 if *piece != EMPTY {
                     *pos = Position::Dead;
@@ -217,12 +217,12 @@ impl Board {
     }
 
     pub fn compute_parachuted_board(
-        state: &[(Position, Piece); 8],
+        state: &[(Piece, Position); 8],
         new_pos: &Position,
         piece: &Piece,
     ) -> Board {
         let mut new_state = state.clone();
-        for (pos, p) in new_state.iter_mut() {
+        for (p, pos) in new_state.iter_mut() {
             if *p == *piece && *pos == Dead {
                 *pos = *new_pos;
                 break;
@@ -251,7 +251,7 @@ impl Board {
             [EMPTY, EMPTY, EMPTY], // y0
         ];
 
-        for (pos, piece) in state.iter() {
+        for (piece, pos) in state.iter() {
             if pos == &Position::Dead {
                 match *piece {
                     CHICK_1 | GIRAFFE_1 | ELEPHANT_1 | LION_1 | HEN_1 => {
@@ -327,7 +327,7 @@ impl Board {
             [EMPTY, EMPTY, EMPTY], // y0
         ];
 
-        for (pos, piece) in state.iter() {
+        for (piece, pos) in state.iter() {
             if pos == &Position::Dead {
                 match *piece {
                     CHICK_1 | GIRAFFE_1 | ELEPHANT_1 | LION_1 | HEN_1 => {
@@ -394,14 +394,14 @@ impl Board {
     pub fn init() -> Board {
         let mut b = Board::new_empty();
         let state = [
-            (X1Y0, LION_1),
-            (X1Y3, LION_2),
-            (X0Y0, ELEPHANT_1),
-            (X2Y3, ELEPHANT_2),
-            (X2Y0, GIRAFFE_1),
-            (X0Y3, GIRAFFE_2),
-            (X1Y1, CHICK_1),
-            (X1Y2, CHICK_2),
+            (LION_1, X1Y0),
+            (LION_2, X1Y3),
+            (ELEPHANT_1, X0Y0),
+            (ELEPHANT_2, X2Y3),
+            (GIRAFFE_1, X2Y0),
+            (GIRAFFE_2, X0Y3),
+            (CHICK_1, X1Y1),
+            (CHICK_2, X1Y2),
         ];
         b.put_state(state);
         b

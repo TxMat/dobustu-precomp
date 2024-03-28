@@ -25,14 +25,14 @@ fn main() {
 
     let mut board_test = Board::new_empty();
     let state = [
-        (X1Y0, LION_1),
-        (X1Y3, LION_2),
-        (X0Y0, ELEPHANT_1),
-        (X2Y3, ELEPHANT_2),
-        (X2Y0, GIRAFFE_1),
-        (X0Y3, GIRAFFE_2),
-        (X1Y1, CHICK_1),
-        (X1Y2, CHICK_2),
+        (LION_1, X1Y0),
+        (LION_2, X1Y3),
+        (ELEPHANT_1, X0Y0),
+        (ELEPHANT_2, X2Y3),
+        (GIRAFFE_1, X2Y0),
+        (GIRAFFE_2, X0Y3),
+        (CHICK_1, X1Y1),
+        (CHICK_2, X1Y2),
     ];
     board_test.put_state(state);
     info!("board {:X}", board_test.0);
@@ -52,47 +52,47 @@ fn calc() {
     let mut visited_black = vec![];
 
     let state_1 = [
-        (X1Y0, LION_1),
-        (X1Y3, LION_2),
-        (X0Y0, ELEPHANT_1),
-        (X1Y2, ELEPHANT_2),
-        (X2Y0, GIRAFFE_1),
-        (X0Y3, GIRAFFE_2),
-        (Dead, CHICK_1),
-        (Dead, CHICK_2),
+        (LION_1, X1Y0),
+        (LION_2, X1Y3),
+        (ELEPHANT_1, X0Y0),
+        (ELEPHANT_2, X1Y2),
+        (GIRAFFE_1, X2Y0),
+        (GIRAFFE_2, X0Y3),
+        (CHICK_1, Dead),
+        (CHICK_2, Dead),
     ];
 
     let state_2 = [
-        (X1Y0, LION_1),
-        (X1Y3, LION_2),
-        (X0Y0, ELEPHANT_1),
-        (X2Y3, ELEPHANT_2),
-        (X2Y1, GIRAFFE_1),
-        (X0Y2, GIRAFFE_2),
-        (X1Y1, CHICK_1),
-        (X1Y2, CHICK_2),
+        (LION_1, X1Y0),
+        (LION_2, X1Y3),
+        (ELEPHANT_1, X0Y0),
+        (ELEPHANT_2, X2Y3),
+        (GIRAFFE_1, X2Y1),
+        (GIRAFFE_2, X0Y2),
+        (CHICK_1, X1Y1),
+        (CHICK_2, X1Y2),
     ];
 
     let state_3 = [
-        (X2Y1, LION_1),
-        (X1Y3, LION_2),
-        (X0Y0, ELEPHANT_1),
-        (X2Y3, ELEPHANT_2),
-        (X2Y0, GIRAFFE_1),
-        (X0Y2, GIRAFFE_2),
-        (X1Y1, CHICK_1),
-        (X1Y2, CHICK_2),
+        (LION_1, X2Y1),
+        (LION_2, X1Y3),
+        (ELEPHANT_1, X0Y0),
+        (ELEPHANT_2, X2Y3),
+        (GIRAFFE_1, X2Y0),
+        (GIRAFFE_2, X0Y2),
+        (CHICK_1, X1Y1),
+        (CHICK_2, X1Y2),
     ];
 
     let state_4 = [
-        (X0Y1, LION_1),
-        (X1Y3, LION_2),
-        (X0Y0, ELEPHANT_1),
-        (X2Y3, ELEPHANT_2),
-        (X2Y0, GIRAFFE_1),
-        (X0Y2, GIRAFFE_2),
-        (X1Y1, CHICK_1),
-        (X1Y2, CHICK_2),
+        (LION_1, X0Y1),
+        (LION_2, X1Y3),
+        (ELEPHANT_1, X0Y0),
+        (ELEPHANT_2, X2Y3),
+        (GIRAFFE_1, X2Y0),
+        (GIRAFFE_2, X0Y2),
+        (CHICK_1, X1Y1),
+        (CHICK_2, X1Y2),
     ];
 
     let mut b1 = Board::init();
@@ -222,7 +222,7 @@ fn recursive_comp(
     file: &mut File,
 ) -> f32 {
     // killswitch
-    if depth >= 10 {
+    if depth >= 20 {
         return -1f32;
     }
 
@@ -353,14 +353,14 @@ fn recursive_comp(
                 file.write_all(format!("{:X} {}\n", current.0, next_move.0).as_bytes())
                     .unwrap();
 
-                if depth < 4 {
-                    //
-                    info!("depth: {}, best move: {}", depth, best_move.1);
-                    info!("initial board");
-                    current.debug_show_board_2();
-                    info!("Best Next board");
-                    best_move.0.debug_show_board_2();
-                }
+                // if depth < 4 {
+                //     //
+                //     info!("depth: {}, best move: {}", depth, best_move.1);
+                //     info!("initial board");
+                //     current.debug_show_board_2();
+                //     info!("Best Next board");
+                //     best_move.0.debug_show_board_2();
+                // }
             }
 
             // debug if
