@@ -1,11 +1,12 @@
-use std::ops::Shl;
+use std::fmt::Display;
+
 // Importing the necessary modules and structs for the Piece struct
 use moves::Move;
 use moves::{MOVE_CHICK, MOVE_ELEPHANT, MOVE_GIRAFFE, MOVE_HEN, MOVE_LION};
 
 /// Represents a piece in the game.
 /// Each piece has a type and a color.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Ord, PartialOrd)]
 pub struct Piece(pub u8);
 
 pub const EMPTY: Piece = Piece(0);
@@ -73,6 +74,11 @@ impl Piece {
     }
 }
 
+impl Display for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.show())
+    }
+}
 // impl Piece {
 //     /// Creates a new piece with the given type and color.
 //     pub fn new(piece_type: PieceType, color: Color, is_duplicated: bool) -> Piece {

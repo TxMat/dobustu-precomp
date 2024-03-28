@@ -1,24 +1,12 @@
-use std::cmp::Ordering;
-use std::convert::TryInto;
-/// todo divide the code in smaller functions
-use std::error::Error;
-use std::fmt::{Binary, LowerHex, UpperHex};
 use std::hash::Hash;
-use std::mem::{size_of, size_of_val};
 
-use log::{error, info};
-
-// Importing the necessary modules and structs for the Board struct
-use moves::Move;
 use piece::{
     Piece, CHICK_1, CHICK_2, ELEPHANT_1, ELEPHANT_2, EMPTY, GIRAFFE_1, GIRAFFE_2, HEN_1, HEN_2,
     LION_1, LION_2,
 };
-use structs::GameResult::{BlackWin, Intermediate, WhiteWin};
-use structs::Position::{
-    Dead, X0Y0, X0Y1, X0Y2, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y1, X2Y2, X2Y3,
-};
-use structs::{GameError, GameResult, Position};
+use structs::GameResult::Intermediate;
+use structs::Position::{Dead, X0Y0, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y3};
+use structs::{GameResult, Position};
 
 // The `derive` attribute automatically implements the specified traits for the struct.
 // Clone: Allows the struct to be duplicated.
@@ -73,7 +61,8 @@ impl Board {
     // }
 
     // Places a piece at the given coordinates.
-    pub fn put_state(&mut self, state: [(Position, Piece); 8]) {
+    pub fn put_state(&mut self, mut state: [(Position, Piece); 8]) {
+        state.sort();
         let mut count: u8 = 0;
         for (pos, piece) in state.iter() {
             let piece_pos: u8 = (piece.0 << 4) + <&Position as Into<u8>>::into(pos);
@@ -100,16 +89,6 @@ impl Board {
             i += 1;
         }
         result
-    }
-
-    pub fn debug_show_board(&self) {
-        let state = self.get_state();
-        let mut count: u8 = 0;
-        for (pos, piece) in state.iter() {
-            //info!("piece: {:?}, pos: {:?}", piece, pos);
-            //info!("count: {:?}", count);
-            count += 1;
-        }
     }
 
     pub fn get_state_processed(&self) -> [[Piece; 3]; 4] {
@@ -225,9 +204,9 @@ impl Board {
             } else if pos == current_pos {
                 *pos = *new_pos;
 
-                if (*piece == CHICK_1 && (*new_pos as u8) > 8) {
+                if *piece == CHICK_1 && (*new_pos as u8) > 8 {
                     *piece = HEN_1;
-                } else if (*piece == CHICK_2 && (*new_pos as u8) < 3) {
+                } else if *piece == CHICK_2 && (*new_pos as u8) < 3 {
                     *piece = HEN_2;
                 }
             }
@@ -331,6 +310,79 @@ impl Board {
                 .collect::<Vec<String>>()
         );
         println!();
+    }
+
+    pub fn debug_show_board_string(&self) -> String {
+        let mut s = String::new();
+        s.push_str("##############\n");
+
+        let state = self.get_state();
+        let mut white_cemetery = vec![];
+        let mut black_cemetery = vec![];
+
+        let mut state_processed: [[Piece; 3]; 4] = [
+            [EMPTY, EMPTY, EMPTY], // y3
+            [EMPTY, EMPTY, EMPTY], // y2
+            [EMPTY, EMPTY, EMPTY], // y1
+            [EMPTY, EMPTY, EMPTY], // y0
+        ];
+
+        for (pos, piece) in state.iter() {
+            if pos == &Position::Dead {
+                match *piece {
+                    CHICK_1 | GIRAFFE_1 | ELEPHANT_1 | LION_1 | HEN_1 => {
+                        white_cemetery.push(*piece);
+                    }
+                    CHICK_2 | GIRAFFE_2 | ELEPHANT_2 | LION_2 | HEN_2 => {
+                        black_cemetery.push(*piece);
+                    }
+                    _ => unreachable!("Should not happen"),
+                }
+                continue;
+            }
+            let x = *pos as u8 % 3;
+            let y = *pos as u8 / 3;
+            state_processed[y as usize][x as usize] = *piece;
+        }
+
+        for y in (0..6).rev() {
+            match y {
+                0 => s.push_str("    0 1 2"),
+                5 => s.push_str("    0 1 2"),
+                _ => {
+                    let y_new = y - 1;
+                    for x in 0..5 {
+                        match x {
+                            0 => s.push_str(&format!("{} | ", y_new)),
+                            4 => s.push_str(&format!("| {}", y_new)),
+                            _ => s.push_str(&format!(
+                                "{} ",
+                                state_processed[y_new as usize][x - 1 as usize].show()
+                            )),
+                        }
+                    }
+                }
+            }
+
+            s.push_str("\n");
+        }
+        s.push_str("##############\n");
+        s.push_str(&format!(
+            "White cemetery: {:?}",
+            white_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        ));
+        s.push_str("\n");
+        s.push_str(&format!(
+            "Black cemetery: {:?}",
+            black_cemetery
+                .iter()
+                .map(|p| p.show().to_string())
+                .collect::<Vec<String>>()
+        ));
+        s
     }
 
     // Removes the piece at the given coordinates.

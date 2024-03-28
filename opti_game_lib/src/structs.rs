@@ -10,7 +10,7 @@ pub enum GameResult {
     Intermediate(Vec<Board>),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Position {
     X0Y0 = 0,
     X1Y0 = 1,
@@ -186,6 +186,7 @@ impl Display for GameError {
 
 impl Error for GameError {}
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct NextMove(pub u8);
 
 impl NextMove {
@@ -226,6 +227,13 @@ impl From<(Piece, Position)> for NextMove {
     fn from(value: (Piece, Position)) -> Self {
         let piece_pos: u8 = (value.0 .0 << 4) + <&Position as Into<u8>>::into(&value.1);
         NextMove(piece_pos)
+    }
+}
+
+impl Display for NextMove {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let (piece, pos) = <NextMove as Into<(Piece, Position)>>::into(*self);
+        write!(f, "{} at {:?}", piece, pos)
     }
 }
 

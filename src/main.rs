@@ -1,4 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fs::File;
+use std::io::Write;
 use std::{env, mem, vec};
 
 use log::info;
@@ -6,22 +8,37 @@ use log::info;
 use game_helper_v2;
 use game_helper_v2::board::Board;
 use game_helper_v2::piece::{
-    Piece, CHICK_1, CHICK_2, ELEPHANT_1, ELEPHANT_2, EMPTY, GIRAFFE_1, GIRAFFE_2, LION_1, LION_2,
+    CHICK_1, CHICK_2, ELEPHANT_1, ELEPHANT_2, GIRAFFE_1, GIRAFFE_2, LION_1, LION_2,
 };
 use game_helper_v2::structs::Position::{
     Dead, X0Y0, X0Y1, X0Y2, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y1, X2Y3,
 };
 use game_helper_v2::structs::{GameResult, NextMove};
 
-use crate::range_set::RangeSet;
-
-mod range_set;
-
 fn main() {
     env::set_var("RUST_LOG", "info");
     pretty_env_logger::init();
 
-    complete_black_comp();
+    // write to a file
+    let mut file = std::fs::File::create("output_b.txt").unwrap();
+    let mut file2 = std::fs::File::create("output_w.txt").unwrap();
+
+    let mut board_test = Board::new_empty();
+    let state = [
+        (X1Y0, LION_1),
+        (X1Y3, LION_2),
+        (X0Y0, ELEPHANT_1),
+        (X2Y3, ELEPHANT_2),
+        (X2Y0, GIRAFFE_1),
+        (X0Y3, GIRAFFE_2),
+        (X1Y1, CHICK_1),
+        (X1Y2, CHICK_2),
+    ];
+    board_test.put_state(state);
+    info!("board {:X}", board_test.0);
+    board_test.debug_show_board_2();
+
+    complete_black_comp(&mut file);
     //bench();
     //calc();
 }
@@ -171,7 +188,7 @@ fn calc() {
     }
 }
 
-fn complete_black_comp() {
+fn complete_black_comp(file: &mut File) {
     let mut to_visit_b: VecDeque<Board> = std::collections::VecDeque::new();
     let mut to_visit_w: VecDeque<Board> = std::collections::VecDeque::new();
 
@@ -187,6 +204,7 @@ fn complete_black_comp() {
         &mut visited_player,
         &mut visited_w,
         Board::init(),
+        file,
     );
 
     info!("Proba: {}", proba);
@@ -201,9 +219,10 @@ fn recursive_comp(
     visited_player: &mut HashMap<Board, (NextMove, f32)>,
     visited_ennemy: &mut HashSet<Board>,
     current: Board,
+    file: &mut File,
 ) -> f32 {
     // killswitch
-    if depth >= 20 {
+    if depth >= 10 {
         return -1f32;
     }
 
@@ -303,6 +322,7 @@ fn recursive_comp(
                     visited_player,
                     visited_ennemy,
                     board,
+                    file,
                 );
 
                 if proba >= 0f32 {
@@ -322,11 +342,16 @@ fn recursive_comp(
                         best_move.1 = move_.1;
                     }
                 }
+                if best_move.1 < 0f32 {
+                    return -1f32;
+                }
                 let next_move = NextMove::new_from_board(&current, &best_move.0);
                 // info!("visited player size before : {}", visited_player.len());
                 // info!("is current in map : {}", visited_player.contains_key(&current));
-                visited_player.insert(current, (next_move, best_move.1));
+                visited_player.insert(current, (next_move.clone(), best_move.1));
                 // info!("visited player size after : {}", visited_player.len());
+                file.write_all(format!("{:X} {}\n", current.0, next_move.0).as_bytes())
+                    .unwrap();
 
                 if depth < 4 {
                     //
