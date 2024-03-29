@@ -187,13 +187,15 @@ impl Display for GameError {
 impl Error for GameError {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct NextMove(pub u8);
+pub struct NextMove(pub u16);
 
 impl NextMove {
-    pub fn new(piece: Piece, position: Position) -> Self {
-        let piece_pos: u8 = (piece.0 << 4) + <&Position as Into<u8>>::into(&position);
-        //info!("new piece pos: {:X}", piece_pos);
-        NextMove(piece_pos)
+    pub fn new(piece: Piece, old_pos: Position, new_pos: Position) -> Self {
+        let piece_pos_pos: u16 = ((piece.0 as u16) << 8)
+            + ((<&Position as Into<u8>>::into(&old_pos) << 4)
+                + <&Position as Into<u8>>::into(&new_pos)) as u16;
+        // println!("new piece pos: {:X}", piece_pos_pos);
+        NextMove(piece_pos_pos)
     }
 
     pub fn new_from_board(initial_board: &Board, next_board: &Board) -> Self {
@@ -204,38 +206,40 @@ impl NextMove {
         for i in 0..7 {
             if initial_byte_arr[i] != next_byte_arr[i] {
                 let piece = (next_byte_arr[i] & 0xf0) >> 4;
-                let pos = next_byte_arr[i] & 0x0f;
-                if pos == Position::Dead as u8 {
+                let new_pos = next_byte_arr[i] & 0x0f;
+                if new_pos == Position::Dead as u8 {
                     continue;
                 }
-                return NextMove((piece << 4) + pos);
+                let old_pos = initial_byte_arr[i] & 0x0f;
+                // opti ?
+                return NextMove(((piece as u16) << 8) + ((old_pos << 4) + new_pos) as u16);
             }
         }
         return NextMove(0);
     }
 }
 
-impl Into<(Piece, Position)> for NextMove {
-    fn into(self) -> (Piece, Position) {
-        let piece = (self.0 & 0xf0) >> 4;
-        let pos = self.0 & 0x0f;
-        (Piece::from(piece), Position::from(pos))
-    }
-}
+// impl Into<(Piece, Position)> for NextMove {
+//     fn into(self) -> (Piece, Position) {
+//         let piece = (self.0 & 0xf0) >> 4;
+//         let pos = self.0 & 0x0f;
+//         (Piece::from(piece), Position::from(pos))
+//     }
+// }
 
-impl From<(Piece, Position)> for NextMove {
-    fn from(value: (Piece, Position)) -> Self {
-        let piece_pos: u8 = (value.0 .0 << 4) + <&Position as Into<u8>>::into(&value.1);
-        NextMove(piece_pos)
-    }
-}
+// impl From<(Piece, Position)> for NextMove {
+//     fn from(value: (Piece, Position)) -> Self {
+//         let piece_pos: u8 = (value.0 .0 << 4) + <&Position as Into<u8>>::into(&value.1);
+//         NextMove(piece_pos)
+//     }
+// }
 
-impl Display for NextMove {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let (piece, pos) = <NextMove as Into<(Piece, Position)>>::into(*self);
-        write!(f, "{} at {:?}", piece, pos)
-    }
-}
+// impl Display for NextMove {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         let (piece, pos) = <NextMove as Into<(Piece, Position)>>::into(*self);
+//         write!(f, "{} at {:?}", piece, pos)
+//     }
+// }
 
 // let arr = self.0.to_be_bytes();
 //         let pos_u8 = position as u8;
