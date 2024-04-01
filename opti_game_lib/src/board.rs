@@ -160,9 +160,9 @@ impl Board {
                 if new_pos.0 < 0 || new_pos.0 > 2 || new_pos.1 < 0 || new_pos.1 > 3 {
                     continue;
                 }
-                if *piece == LION_2 && new_pos.1 == 3 {
+                if *piece == LION_2 && new_pos.1 == 0 {
                     return GameResult::BlackWin;
-                } else if *piece == LION_1 && new_pos.1 == 0 {
+                } else if *piece == LION_1 && new_pos.1 == 3 {
                     return GameResult::WhiteWin;
                 }
                 let new_pos: (u8, u8) = (new_pos.0 as u8, new_pos.1 as u8);

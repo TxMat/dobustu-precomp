@@ -100,9 +100,9 @@ fn recursive_comp(
     file: &mut File,
 ) -> f32 {
     // killswitch
-    if depth >= 17 {
-        return -1f32;
-    }
+    // if depth >= 17 {
+    //     return -1f32;
+    // }
 
     // debug
     if visited_player.len() % 2_000_000 == 0 {
