@@ -100,7 +100,7 @@ fn recursive_comp(
     file: &mut File,
 ) -> f32 {
     // killswitch
-    if depth >= 15 {
+    if depth >= 17 {
         return -1f32;
     }
 
