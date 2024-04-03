@@ -6,11 +6,10 @@ use std::io::BufWriter;
 use std::io::Write;
 use std::sync::Arc;
 
-use log::{error, info};
-use tokio::sync::Mutex;
-
 use game_helper::board::Board;
 use game_helper::structs::GameResult;
+use log::{error, info};
+use tokio::sync::Mutex;
 
 pub(crate) async fn main() {
     env::set_var("RUST_LOG", "info");

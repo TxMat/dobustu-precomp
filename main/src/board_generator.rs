@@ -3,10 +3,9 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
 
-use log::info;
-
 use game_helper::board::Board;
 use game_helper::structs::GameResult;
+use log::info;
 
 pub(crate) fn main() {
     env::set_var("RUST_LOG", "info");

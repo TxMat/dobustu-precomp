@@ -2,12 +2,11 @@ use std::env;
 use std::error::Error;
 use std::io::Write;
 
-use log::{error, info, warn};
-
 use game_helper::board::Board;
 use game_helper::moves::{MOVE_E, MOVE_N, MOVE_NE, MOVE_NW, MOVE_S, MOVE_SE, MOVE_SW, MOVE_W};
 use game_helper::piece::{Color, Piece, PieceType};
 use game_helper::structs::GameError::{CantMoveAnywhere, EmptyCemetary, InavlidPiece, InvalidMove};
+use log::{error, info, warn};
 
 pub fn play_game() {
     let mut b = Board::init();

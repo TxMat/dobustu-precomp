@@ -1,3 +1,4 @@
+use log::info;
 use std::hash::Hash;
 
 use piece::{
@@ -134,10 +135,13 @@ impl Board {
         let state_processed = Self::get_state_processed_from_state(state);
         let mut boards = vec![];
 
+        // for each piece in the state
         for (piece, pos) in state.iter() {
+            // do not process the ennemy pieces
             if !piece.is_mine(is_player_1) {
                 continue;
             }
+            // if the piece is dead try to parachute it everywhere
             if *pos == Position::Dead {
                 for y in 0..4 {
                     for x in 0..3 {
@@ -150,28 +154,31 @@ impl Board {
                 }
                 continue;
             }
-            let moves = piece.moves();
-            for m in moves {
+            fn is_pos_valid(x: i8, y: i8) -> bool {
+                (0..3).contains(&x) && (0..4).contains(&y)
+            }
+            // for each move of the piece
+            for m in piece.moves() {
                 let converted_pos = <&Position as Into<(i8, i8)>>::into(pos);
-                let new_pos = match is_player_1 {
-                    true => (converted_pos.0 + m.x, converted_pos.1 + m.y),
-                    false => (converted_pos.0 - m.x, converted_pos.1 - m.y),
-                };
-                if new_pos.0 < 0 || new_pos.0 > 2 || new_pos.1 < 0 || new_pos.1 > 3 {
-                    continue;
-                }
-                if *piece == LION_2 && new_pos.1 == 0 {
-                    return GameResult::BlackWin;
-                } else if *piece == LION_1 && new_pos.1 == 3 {
-                    return GameResult::WhiteWin;
-                }
-                let new_pos: (u8, u8) = (new_pos.0 as u8, new_pos.1 as u8);
-                let piece_on_new_pos = state_processed[new_pos.1 as usize][new_pos.0 as usize];
-                if !piece_on_new_pos.is_mine(is_player_1) {
+                let new_pos = (
+                    (converted_pos.0 as i8 + if is_player_1 { m.x } else { -m.x }) as u8,
+                    (converted_pos.1 as i8 + if is_player_1 { m.y } else { -m.y }) as u8,
+                );
+                if (0..3).contains(&new_pos.0) && (0..4).contains(&new_pos.1) {
+                    let piece_on_new_pos = state_processed[new_pos.1 as usize][new_pos.0 as usize];
+                    if piece_on_new_pos.is_mine(is_player_1) {
+                        continue;
+                    }
                     if piece_on_new_pos == LION_1 && !is_player_1 {
                         return GameResult::BlackWin;
                     }
                     if piece_on_new_pos == LION_2 && is_player_1 {
+                        return GameResult::WhiteWin;
+                    }
+
+                    if *piece == LION_2 && new_pos.1 == 0 {
+                        return GameResult::BlackWin;
+                    } else if *piece == LION_1 && new_pos.1 == 3 {
                         return GameResult::WhiteWin;
                     }
                     boards.push(Self::compute_new_board(
@@ -182,7 +189,41 @@ impl Board {
                 }
             }
         }
+        if boards.is_empty() {
+            return if is_player_1 {
+                GameResult::BlackWin
+            } else {
+                GameResult::WhiteWin
+            };
+        }
         Intermediate(boards)
+    }
+
+    fn is_lion_in_danger(is_player_1: bool, state_processed: [[Piece; 3]; 4]) -> bool {
+        for m in LION_1.moves() {
+            let check_pos = (
+                (new_pos.0 as i8 + if is_player_1 { m.x } else { -m.x }) as u8,
+                (new_pos.1 as i8 + if is_player_1 { m.y } else { -m.y }) as u8,
+            );
+            if (0..3).contains(&check_pos.0) && (0..4).contains(&check_pos.1) {
+                let piece_on_new_pos = state_processed[check_pos.1 as usize][check_pos.0 as usize];
+                // si piece adjacente ennemine alors
+                if piece_on_new_pos != EMPTY && !piece_on_new_pos.is_mine(is_player_1) {
+                    // pour chaque mouvement de la piece adjacente
+                    for m in piece_on_new_pos.moves() {
+                        let check_pos = (
+                            check_pos.0 as i8 + if is_player_1 { m.x } else { -m.x },
+                            check_pos.1 as i8 + if is_player_1 { m.y } else { -m.y },
+                        );
+                        // si la piece adjacente peut manger le lion
+                        if (check_pos.0 as u8, check_pos.1 as u8) == new_pos {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        false
     }
 
     // todo continuer ici
