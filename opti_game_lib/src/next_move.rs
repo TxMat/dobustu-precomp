@@ -1,5 +1,5 @@
-use log::set_max_level;
 use board::Board;
+use log::set_max_level;
 use piece::Piece;
 use structs::Position;
 
@@ -10,16 +10,15 @@ impl NextMove {
     pub fn new(piece: Piece, old_pos: Position, new_pos: Position) -> Self {
         let piece_pos_pos: u16 = ((piece.0 as u16) << 8)
             + ((<&Position as Into<u8>>::into(&old_pos) << 4)
-            + <&Position as Into<u8>>::into(&new_pos)) as u16;
+                + <&Position as Into<u8>>::into(&new_pos)) as u16;
         // println!("new piece pos: {:X}", piece_pos_pos);
         NextMove(piece_pos_pos)
     }
 
-    pub fn get_current_and_next(&self, is_player_1: bool) -> (u8, u8)
-    {
-        let mut newPosition:Position = Position::from(self.0 & 0x00f);
-        let mut oldPosition:Position = Position::from((self.0 & 0x0f0) >> 4);
-        let mut piece:Piece = Piece::from()
+    pub fn get_current_and_next(&self, is_player_1: bool) -> (u8, u8) {
+        let mut newPosition: Position = Position::from(self.0 & 0x00f);
+        let mut oldPosition: Position = Position::from((self.0 & 0x0f0) >> 4);
+        let mut piece: Piece = Piece::from((self.0 & 0xf00) >> 4);
     }
 
     pub fn new_from_board(initial_board: &Board, next_board: &Board) -> Self {
