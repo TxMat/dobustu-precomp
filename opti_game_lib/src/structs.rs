@@ -35,6 +35,20 @@ impl PartialEq<(u8, u8)> for &Position {
     }
 }
 
+impl Position {
+    pub fn is_winning_row_for_player(&self, is_player_1: bool) -> bool {
+        match *self {
+            Position::X0Y0 | Position::X1Y0 | Position::X2Y0 => !is_player_1,
+            Position::X0Y3 | Position::X1Y3 | Position::X2Y3 => is_player_1,
+            _ => return false,
+        }
+    }
+
+    pub fn as_u8(&self) -> u8 {
+        <Position as Into<u8>>::into(*self)
+    }
+}
+
 impl From<u16> for Position {
     fn from(n: u16) -> Self {
         match n {
