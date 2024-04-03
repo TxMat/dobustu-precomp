@@ -7,13 +7,14 @@ use log::info;
 
 use game_helper_v2;
 use game_helper_v2::board::Board;
+use game_helper_v2::next_move::NextMove;
 use game_helper_v2::piece::{
     CHICK_1, CHICK_2, ELEPHANT_1, ELEPHANT_2, GIRAFFE_1, GIRAFFE_2, LION_1, LION_2,
 };
+use game_helper_v2::structs::GameResult;
 use game_helper_v2::structs::Position::{
     Dead, X0Y0, X0Y1, X0Y2, X0Y3, X1Y0, X1Y1, X1Y2, X1Y3, X2Y0, X2Y1, X2Y3,
 };
-use game_helper_v2::structs::{GameResult, NextMove};
 
 fn main() {
     env::set_var("RUST_LOG", "info");
@@ -118,7 +119,7 @@ fn recursive_comp(
 
     // info!("Board at depth: {}", depth);
     // current.debug_show_board_2();
-    match current.get_next_states(is_white) {
+    match current.get_next_states_2(is_white) {
         GameResult::WhiteWin => {
             // info!("White wins");
             if is_white && is_mine {
@@ -254,53 +255,4 @@ fn recursive_comp(
             return total_proba / proba_number;
         }
     }
-}
-
-fn complete_black_comp_omg(file: &mut File) {
-    let mut stack: Vec<(bool, bool, u64, Board)> = Vec::new();
-    let mut visited_player: HashMap<Board, (NextMove, f32)> = HashMap::new();
-    let mut visited_ennemy: HashSet<Board> = HashSet::new();
-
-    stack.push((true, false, 0, Board::init()));
-
-    while let Some((is_white, is_mine, depth, current)) = stack.pop() {
-        if visited_player.len() % 2_000_000 == 0 {
-            info!("visited mine: {}", visited_player.len());
-        }
-        if visited_ennemy.len() % 2_000_000 == 0 {
-            info!("visited not mine: {}", visited_ennemy.len());
-        }
-
-        match current.get_next_states(is_white) {
-            GameResult::WhiteWin => {
-                if is_white && is_mine {
-                    visited_player.insert(current, (NextMove(0), 1f32));
-                }
-            }
-            GameResult::BlackWin => {
-                if !is_white && is_mine {
-                    visited_player.insert(current, (NextMove(0), 1f32));
-                }
-            }
-            GameResult::Intermediate(board_vec) => {
-                for b in board_vec {
-                    if is_mine {
-                        if visited_player.get(&b).is_some() {
-                            continue;
-                        }
-                        visited_ennemy.insert(b);
-                    } else {
-                        if visited_ennemy.contains(&b) {
-                            continue;
-                        }
-                        visited_player.insert(b, (NextMove(0), -1f32));
-                    }
-                    stack.push((!is_white, !is_mine, depth + 1, b));
-                }
-            }
-        }
-    }
-
-    let proba: f32 = visited_player.values().map(|&(_, p)| p).sum();
-    info!("Proba: {}", proba);
 }

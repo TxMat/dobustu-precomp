@@ -1,6 +1,7 @@
 use board::Board;
 use log::set_max_level;
 use piece::Piece;
+use std::ops::Add;
 use structs::Position;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -16,9 +17,16 @@ impl NextMove {
     }
 
     pub fn get_current_and_next(&self, is_player_1: bool) -> (u8, u8) {
-        let mut newPosition: Position = Position::from(self.0 & 0x00f);
-        let mut oldPosition: Position = Position::from((self.0 & 0x0f0) >> 4);
-        let mut piece: Piece = Piece::from((self.0 & 0xf00) >> 4);
+        let mut new_position = Position::from(self.0 & 0x00f);
+        let mut old_position = Position::from((self.0 & 0x0f0) >> 4);
+        let mut old_piece = Piece::from((self.0 & 0xf00) >> 8); // 8?
+
+        let new_piece = old_piece.transform_movement(is_player_1, old_position, new_position);
+
+        (
+            (old_piece.0 << 4) + <Position as Into<u8>>::into(old_position),
+            (new_piece.0 << 4) + <Position as Into<u8>>::into(new_position),
+        )
     }
 
     pub fn new_from_board(initial_board: &Board, next_board: &Board) -> Self {

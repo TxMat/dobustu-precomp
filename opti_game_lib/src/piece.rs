@@ -3,6 +3,7 @@ use std::fmt::Display;
 // Importing the necessary modules and structs for the Piece struct
 use moves::Move;
 use moves::{MOVE_CHICK, MOVE_ELEPHANT, MOVE_GIRAFFE, MOVE_HEN, MOVE_LION};
+use structs::Position;
 
 /// Represents a piece in the game.
 /// Each piece has a type and a color.
@@ -23,6 +24,25 @@ pub const HEN_2: Piece = Piece(10);
 
 impl From<u8> for Piece {
     fn from(n: u8) -> Self {
+        match n {
+            0 => EMPTY,
+            1 => LION_1,
+            2 => LION_2,
+            3 => ELEPHANT_1,
+            4 => ELEPHANT_2,
+            5 => GIRAFFE_1,
+            6 => GIRAFFE_2,
+            7 => CHICK_1,
+            8 => CHICK_2,
+            9 => HEN_1,
+            10 => HEN_2,
+            _ => panic!("Invalid piece"),
+        }
+    }
+}
+
+impl From<u16> for Piece {
+    fn from(n: u16) -> Self {
         match n {
             0 => EMPTY,
             1 => LION_1,
@@ -71,6 +91,38 @@ impl Piece {
 
     pub fn is_mine(&self, is_player_1: bool) -> bool {
         self.0 != 0 && self.0 % 2 == is_player_1 as u8
+    }
+
+    pub fn transform_movement(
+        self,
+        is_player_1: bool,
+        old_position: Position,
+        new_position: Position,
+    ) -> Self {
+        if old_position == Position::Dead {
+            return self;
+        }
+        return match self {
+            CHICK_1 if is_player_1 && new_position.is_winning_row_for_player(is_player_1) => HEN_1,
+            CHICK_2 if !is_player_1 && new_position.is_winning_row_for_player(is_player_1) => HEN_2,
+            _ => self,
+        };
+    }
+
+    pub fn get_opposite_except_king(&self) -> Self {
+        match *self {
+            LION_1 => LION_1,
+            LION_2 => LION_2,
+            ELEPHANT_1 => ELEPHANT_2,
+            ELEPHANT_2 => ELEPHANT_1,
+            GIRAFFE_1 => GIRAFFE_2,
+            GIRAFFE_2 => GIRAFFE_1,
+            CHICK_1 => CHICK_2,
+            CHICK_2 => CHICK_1,
+            HEN_1 => HEN_2,
+            HEN_2 => HEN_1,
+            _ => panic!("Invalid piece"),
+        }
     }
 }
 
