@@ -133,78 +133,78 @@ impl Board {
     }
 
     //1 true 2 false
-    pub fn get_next_states(&self, is_player_1: bool) -> GameResult {
-        let state = self.get_state();
-        let state_processed = Self::get_state_processed_from_state(state);
-        let mut boards = vec![];
-
-        // for each piece in the state
-        for (piece, pos) in state.iter() {
-            // do not process the ennemy pieces
-            if !piece.is_mine(is_player_1) {
-                continue;
-            }
-            // if the piece is dead try to parachute it everywhere
-            if *pos == Position::Dead {
-                for y in 0..4 {
-                    for x in 0..3 {
-                        // if the position is not empty skip
-                        if state_processed[y][x].0 == 0 {
-                            let new_pos = Position::from((x as u8, y as u8));
-                            boards.push(Self::compute_parachuted_board(&state, &new_pos, piece));
-                        }
-                    }
-                }
-                continue;
-            }
-            // for each move of the piece
-            for m in piece.moves() {
-                let converted_pos = <&Position as Into<(i8, i8)>>::into(pos);
-                let new_pos = (
-                    (converted_pos.0 as i8 + if is_player_1 { m.x } else { -m.x }) as u8,
-                    (converted_pos.1 as i8 + if is_player_1 { m.y } else { -m.y }) as u8,
-                );
-                if (0..3).contains(&new_pos.0) && (0..4).contains(&new_pos.1) {
-                    let piece_on_new_pos = state_processed[new_pos.1 as usize][new_pos.0 as usize];
-                    if piece_on_new_pos.is_mine(is_player_1) {
-                        continue;
-                    }
-                    if piece_on_new_pos == LION_1 && !is_player_1 {
-                        return GameResult::BlackWin;
-                    }
-                    if piece_on_new_pos == LION_2 && is_player_1 {
-                        return GameResult::WhiteWin;
-                    }
-
-                    if *piece == LION_2 && new_pos.1 == 0 {
-                        return GameResult::BlackWin;
-                    } else if *piece == LION_1 && new_pos.1 == 3 {
-                        return GameResult::WhiteWin;
-                    }
-                    boards.push(Self::compute_new_board(
-                        &state,
-                        pos,
-                        &Position::from(new_pos),
-                    ));
-                }
-            }
-        }
-        if boards.is_empty() {
-            return if is_player_1 {
-                GameResult::BlackWin
-            } else {
-                GameResult::WhiteWin
-            };
-        }
-        Intermediate(boards)
-    }
+    // pub fn get_next_states(&self, is_player_1: bool) -> GameResult {
+    //     let state = self.get_state();
+    //     let state_processed = Self::get_state_processed_from_state(state);
+    //     let mut boards = vec![];
+    //
+    //     // for each piece in the state
+    //     for (piece, pos) in state.iter() {
+    //         // do not process the ennemy pieces
+    //         if !piece.is_mine(is_player_1) {
+    //             continue;
+    //         }
+    //         // if the piece is dead try to parachute it everywhere
+    //         if *pos == Position::Dead {
+    //             for y in 0..4 {
+    //                 for x in 0..3 {
+    //                     // if the position is not empty skip
+    //                     if state_processed[y][x].0 == 0 {
+    //                         let new_pos = Position::from((x as u8, y as u8));
+    //                         boards.push(Self::compute_parachuted_board(&state, &new_pos, piece));
+    //                     }
+    //                 }
+    //             }
+    //             continue;
+    //         }
+    //         // for each move of the piece
+    //         for m in piece.moves() {
+    //             let converted_pos = <&Position as Into<(i8, i8)>>::into(pos);
+    //             let new_pos = (
+    //                 (converted_pos.0 as i8 + if is_player_1 { m.x } else { -m.x }) as u8,
+    //                 (converted_pos.1 as i8 + if is_player_1 { m.y } else { -m.y }) as u8,
+    //             );
+    //             if (0..3).contains(&new_pos.0) && (0..4).contains(&new_pos.1) {
+    //                 let piece_on_new_pos = state_processed[new_pos.1 as usize][new_pos.0 as usize];
+    //                 if piece_on_new_pos.is_mine(is_player_1) {
+    //                     continue;
+    //                 }
+    //                 if piece_on_new_pos == LION_1 && !is_player_1 {
+    //                     return GameResult::BlackWin;
+    //                 }
+    //                 if piece_on_new_pos == LION_2 && is_player_1 {
+    //                     return GameResult::WhiteWin;
+    //                 }
+    //
+    //                 if *piece == LION_2 && new_pos.1 == 0 {
+    //                     return GameResult::BlackWin;
+    //                 } else if *piece == LION_1 && new_pos.1 == 3 {
+    //                     return GameResult::WhiteWin;
+    //                 }
+    //                 boards.push(Self::compute_new_board(
+    //                     &state,
+    //                     pos,
+    //                     &Position::from(new_pos),
+    //                 ));
+    //             }
+    //         }
+    //     }
+    //     if boards.is_empty() {
+    //         return if is_player_1 {
+    //             GameResult::BlackWin
+    //         } else {
+    //             GameResult::WhiteWin
+    //         };
+    //     }
+    //     Intermediate(boards)
+    // }
 
     pub fn get_next_states_2(&self, is_player_1: bool) -> GameResult {
         let state = self.get_state();
         let mut parachuted_pieces = HashSet::new();
         let state_processed = Self::get_state_processed_from_state(state);
         let mut empty_positions: Vec<Position> = vec![];
-        let mut boards = vec![];
+        let mut boards: Vec<(NextMove, Board)> = vec![];
         for y in 0..4 {
             for x in 0..3 {
                 if state_processed[y][x].0 == 0 {
@@ -237,7 +237,7 @@ impl Board {
                         };
                     }
                     // None
-                    boards.push(next_board);
+                    boards.push((next_move, next_board));
                 }
             } else {
                 for m in piece.moves() {
@@ -269,7 +269,7 @@ impl Board {
                                 };
                             }
                             // None
-                            boards.push(next_board);
+                            boards.push((next_move, next_board));
                         } else {
                             let next_move = NextMove::new(piece, pos, new_pos);
                             let next_board =
@@ -284,7 +284,7 @@ impl Board {
                                 };
                             }
                             // None
-                            boards.push(next_board);
+                            boards.push((next_move, next_board));
                         }
                     }
                 }

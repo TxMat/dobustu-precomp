@@ -1,14 +1,29 @@
 use board::Board;
+use next_move::NextMove;
 use piece::Piece;
 use std::error::Error;
 use std::fmt::Display;
 use std::ops::Add;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum GameResult {
     WhiteWin,
     BlackWin,
-    Intermediate(Vec<Board>),
+    Intermediate(Vec<(NextMove, Board)>),
+}
+
+pub enum Calc<G> {
+    GameResult(G),
+    Proba((NextMove, f32)),
+}
+
+impl<T> Calc<T> {
+    pub fn unwrap_some(&self) -> &T {
+        match self {
+            Calc::GameResult(val) => val,
+            Calc::Proba(_) => panic!("No way"),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
