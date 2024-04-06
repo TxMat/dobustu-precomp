@@ -603,8 +603,9 @@ impl Board {
         }
 
         // sort selon 0xf0
-        new_bytes.sort_unstable_by(|a, b| (a & 0xf0).cmp(&(b & 0xf0)));
-        Board(u64::from_be_bytes(new_bytes))
+        // new_bytes.sort_unstable_by_key(|a| 0xf0 - (a & 0xf0));
+        new_bytes.sort_unstable();
+        Board(u64::from_le_bytes(new_bytes))
     }
 
     pub fn has_winner(&self, is_player_1: bool) -> Option<bool> {
