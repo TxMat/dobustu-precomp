@@ -576,7 +576,8 @@ impl Board {
             panic!("Found no correspondance");
         }
 
-        Board(u64::from_be_bytes(new_bytes))
+        new_bytes.sort_unstable();
+        Board(u64::from_le_bytes(new_bytes))
     }
 
     pub fn compute_child_from_nextmove(&self, next_move: NextMove, is_player_1: bool) -> Board {
