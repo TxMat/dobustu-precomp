@@ -125,7 +125,7 @@ fn sequential_comp() {
                         }
                         if depth >= 2 {
                             for d in 0u8..depth - 1 {
-                                if (!is_player_one && d % 2 == 0) || (is_player_one && d % 2 != 0) {
+                                if (is_player_one && d % 2 == 0) || (!is_player_one && d % 2 != 0) {
                                     continue;
                                 }
                                 if calc_state.get(&(d)).unwrap().contains_key(board) {
