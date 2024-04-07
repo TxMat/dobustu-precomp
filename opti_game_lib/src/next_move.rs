@@ -1,11 +1,24 @@
 use board::Board;
 use log::set_max_level;
 use piece::Piece;
+use std::fmt::{Formatter, LowerHex, UpperHex};
 use std::ops::Add;
 use structs::Position;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct NextMove(pub u16);
+
+impl LowerHex for NextMove {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:x}", self.0)
+    }
+}
+
+impl UpperHex for NextMove {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:X}", self.0)
+    }
+}
 
 impl NextMove {
     pub fn new(piece: Piece, old_pos: Position, new_pos: Position) -> Self {

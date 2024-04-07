@@ -1,9 +1,10 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::Write;
+use std::sync::{Arc, RwLock};
 use std::{env, mem, vec};
 
-use log::info;
+use log::{debug, error, info};
 
 use game_helper_v2;
 use game_helper_v2::board::Board;
@@ -18,7 +19,7 @@ use game_helper_v2::structs::Position::{
 use game_helper_v2::structs::{Calc, GameResult};
 
 fn main() {
-    env::set_var("RUST_LOG", "info");
+    env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
     // write to a file
@@ -92,26 +93,26 @@ fn main() {
 //     info!("Proba: {}", proba);
 // }
 
-const MAX_DEPTH: u8 = 5;
+const MAX_DEPTH: u8 = 11;
 
 fn sequential_comp() {
-    let mut calc_state: HashMap<u8, &mut HashMap<Board, Calc<GameResult>>> = HashMap::default();
+    let mut calc_state: HashMap<u8, HashMap<Board, GameResult>> = HashMap::default();
 
     let mut is_player_one = true;
 
     let mut hs = HashMap::new();
     hs.insert(
         Board::init(),
-        Calc::GameResult(Board::init().get_next_states_2(is_player_one)),
+        Board::init().get_next_states_2(is_player_one),
     );
-    calc_state.insert(0, &mut hs);
+    calc_state.insert(0, hs);
 
     for depth in 0u8..MAX_DEPTH {
         let current_hashmap = calc_state.get(&depth).unwrap();
 
         let mut next_hashmap = HashMap::new();
         for game_result in current_hashmap.values() {
-            match game_result.unwrap_some() {
+            match game_result {
                 GameResult::WhiteWin | GameResult::BlackWin => continue,
                 GameResult::Intermediate(game_result_board_vec) => {
                     'outer: for (_, board) in game_result_board_vec {
@@ -125,47 +126,206 @@ fn sequential_comp() {
                                 }
                             }
                         }
-                        next_hashmap.insert(
-                            *board,
-                            Calc::GameResult(board.get_next_states_2(!is_player_one)),
-                        );
+                        next_hashmap.insert(*board, board.get_next_states_2(!is_player_one));
                     }
                 }
             }
         }
-        calc_state.insert(depth + 1, &mut next_hashmap);
+        calc_state.insert(depth + 1, next_hashmap);
         is_player_one = !is_player_one;
     }
 
-    calc_proba(true, &mut calc_state);
+    duplicate_checker(&calc_state);
+
+    // info!("Calculating White");
+    // calc_proba(true, &calc_state);
+    // info!("Calculating Black");
     // calc_proba(false, &calc_state);
 }
 
-fn calc_proba(
-    is_player_one: bool,
-    calc_state: &mut HashMap<u8, &mut HashMap<Board, Calc<GameResult>>>,
-) {
-    for depth in (0..crate::MAX_DEPTH).rev() {
-        let current_hashmap: &mut HashMap<Board, Calc<game_helper_v2::structs::GameResult>> =
-            *calc_state.get(&depth).unwrap();
-        let next_hashmap = calc_state.get(&(depth + 1)).unwrap();
-        for (b, calc) in current_hashmap.iter_mut() {
-            match calc.unwrap_some() {
+fn duplicate_checker(calc_state: &HashMap<u8, HashMap<Board, GameResult>>) {
+    let mut all_white: HashMap<&Board, &GameResult> = HashMap::default();
+    let mut all_black: HashMap<&Board, &GameResult> = HashMap::default();
+    let mut master_len_white = 0;
+    let mut master_len_black = 0;
+
+    for d in 0..MAX_DEPTH {
+        if d % 2 == 0 {
+            master_len_white += calc_state.get(&d).unwrap().len();
+            all_white.extend(calc_state.get(&d).unwrap())
+        } else {
+            master_len_black += calc_state.get(&d).unwrap().len();
+            all_black.extend(calc_state.get(&d).unwrap())
+        }
+    }
+
+    debug!("White");
+    info!("was : {}", master_len_white);
+    info!("is : {}", all_white.len());
+
+    debug!("Black");
+    info!("was : {}", master_len_black);
+    info!("is : {}", all_black.len());
+}
+
+fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameResult>>) {
+    let probas_mine: Arc<RwLock<HashMap<Board, (f32, NextMove)>>> =
+        Arc::new(RwLock::new(HashMap::default()));
+    let probas_theirs: Arc<RwLock<HashMap<Board, (f32, NextMove)>>> =
+        Arc::new(RwLock::new(HashMap::default()));
+    let is_ours_to_play = if is_player_one {
+        (MAX_DEPTH - 1) % 2 == 0
+    } else {
+        (MAX_DEPTH - 1) % 2 != 0
+    };
+
+    let list_ref = if is_ours_to_play {
+        probas_mine.clone()
+    } else {
+        probas_theirs.clone()
+    };
+
+    for (b, game_result) in calc_state.get(&(MAX_DEPTH - 1)).unwrap() {
+        let mut list_guard = list_ref.write().unwrap();
+        match game_result {
+            GameResult::WhiteWin => {
+                let a;
+                if let Some(old) = if is_player_one {
+                    a = 1;
+                    list_guard.insert(*b, (1f32, NextMove(0)))
+                } else {
+                    a = 0;
+                    list_guard.insert(*b, (0f32, NextMove(0)))
+                } {
+                    error!("HASHMAP ERROR");
+                    error!("{:X} already in probas WW", b.0);
+                    error!("was {}, {:x}", old.0, old.1);
+                    error!("is {}, {:x}", a, 0);
+                }
+            }
+
+            GameResult::BlackWin => {
+                let a;
+                if let Some(old) = if is_player_one {
+                    a = 0;
+                    list_guard.insert(*b, (0f32, NextMove(0)))
+                } else {
+                    a = 1;
+                    list_guard.insert(*b, (1f32, NextMove(0)))
+                } {
+                    error!("HASHMAP ERROR");
+                    error!("{:X} already in probas BW", b.0);
+                    error!("was {}, {:x}", old.0, old.1);
+                    error!("is {}, {:x}", a, 0);
+                }
+            }
+            GameResult::Intermediate(_) => {
+                list_guard.insert(*b, (0.5f32, NextMove(0)));
+            }
+        }
+    }
+
+    for depth in (0..MAX_DEPTH - 1).rev() {
+        info!("{}", depth);
+        let is_our_turn = if is_player_one {
+            depth % 2 == 0
+        } else {
+            depth % 2 != 0
+        };
+
+        let list_ref = if is_our_turn {
+            probas_mine.clone()
+        } else {
+            probas_theirs.clone()
+        };
+
+        let list_ref_ennemy = if is_our_turn {
+            probas_theirs.clone()
+        } else {
+            probas_mine.clone()
+        };
+
+        let current_hashmap: &HashMap<Board, GameResult> = calc_state.get(&depth).unwrap();
+
+        for (b, game_result) in current_hashmap.iter() {
+            let mut list_guard_mine = list_ref.write().unwrap();
+            let probas_theirs = list_ref_ennemy.read().unwrap();
+            match game_result {
                 GameResult::WhiteWin => {
-                    if is_player_one {
-                        *calc = Proba((NextMove(0), 1f32));
+                    let a;
+                    if let Some(old) = if is_player_one {
+                        a = 1;
+                        list_guard_mine.insert(*b, (1f32, NextMove(0)))
                     } else {
-                        *calc = Proba((NextMove(0), 0f32));
+                        a = 0;
+                        list_guard_mine.insert(*b, (0f32, NextMove(0)))
+                    } {
+                        error!("{:X} already in probas WW", b.0);
+                        error!("was {}, {:x}", old.0, old.1);
+                        error!("is {}, {:x}", a, 0);
                     }
                 }
                 GameResult::BlackWin => {
-                    if is_player_one {
-                        *calc = Proba((NextMove(0), 0f32));
+                    let a;
+                    if let Some(old) = if is_player_one {
+                        a = 0;
+                        list_guard_mine.insert(*b, (0f32, NextMove(0)))
                     } else {
-                        *calc = Proba((NextMove(0), 1f32));
+                        a = 1;
+                        list_guard_mine.insert(*b, (1f32, NextMove(0)))
+                    } {
+                        error!("{:X} already in probas BW", b.0);
+                        error!("was {}, {:x}", old.0, old.1);
+                        error!("is {}, {:x}", a, 0);
                     }
                 }
-                GameResult::Intermediate(board_vec) => for (next, board) in board_vec {},
+                GameResult::Intermediate(board_vec) => {
+                    let mut best_move = (-2f32, NextMove(0));
+                    if is_our_turn {
+                        for (next, board) in board_vec {
+                            if let Some(probas_tuple) = probas_theirs.get(board) {
+                                if probas_tuple.0 > best_move.0 {
+                                    best_move = (probas_tuple.0, *next)
+                                }
+                            } else if 0.5f32 > best_move.0 {
+                                best_move = (0.5f32, *next)
+                            }
+                        }
+                        if let Some(tuple) = list_guard_mine.insert(*b, best_move) {
+                            if tuple.0 != 0.5f32 {
+                                error!("{:X} already in probas", b.0);
+                                // ici
+                                error!("was {}, {:x}", tuple.0, tuple.1);
+                                error!("is {}, {:x}", best_move.0, best_move.1);
+                            }
+                        }
+                    } else {
+                        let mut proba_sum = 0f32;
+                        let mut board_number = 0f32;
+
+                        for (_, board) in board_vec {
+                            if let Some(probas_tuple) = probas_theirs.get(board) {
+                                proba_sum += probas_tuple.0;
+                                board_number += 1f32;
+                            } else {
+                                proba_sum += 0.5f32;
+                                board_number += 1f32;
+                            }
+                        }
+
+                        let final_proba = proba_sum / board_number;
+
+                        if let Some(tuple) = list_guard_mine.insert(*b, (final_proba, NextMove(0)))
+                        {
+                            if tuple.0 != 0.5f32 {
+                                error!("{:X} already in probas ennemy", b.0);
+                                // ici
+                                error!("was {}, {:x}", tuple.0, tuple.1);
+                                error!("is {}, {:x}", final_proba, best_move.1);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
