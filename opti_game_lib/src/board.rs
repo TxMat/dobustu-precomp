@@ -1,4 +1,4 @@
-use log::info;
+use log::{error, info};
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::os::linux::raw::stat;

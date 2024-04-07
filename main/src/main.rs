@@ -120,18 +120,21 @@ fn sequential_comp() {
                 GameResult::WhiteWin | GameResult::BlackWin => continue,
                 GameResult::Intermediate(game_result_board_vec) => {
                     'outer: for (_, board) in game_result_board_vec {
-                        if board.0 == 0x8C7C696C3C302A15 {
-                            error!("Found");
+                        if board.0 == 0x8C7C695547302A11 {
+                            // error!("a");
                         }
                         if depth >= 2 {
                             for d in 0u8..depth - 1 {
                                 if (!is_player_one && d % 2 == 0) || (is_player_one && d % 2 != 0) {
                                     continue;
                                 }
-                                if calc_state.get(&d).unwrap().contains_key(board) {
+                                if calc_state.get(&(d)).unwrap().contains_key(board) {
                                     continue 'outer;
                                 }
                             }
+                        }
+                        if board.0 == 0x8C7C695547302A11 {
+                            // error!("Found");
                         }
                         next_hashmap.insert(*board, board.get_next_states_2(!is_player_one));
                     }
