@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt::format;
 use std::fs::File;
 use std::io::Write;
 use std::sync::{Arc, RwLock};
@@ -107,7 +108,10 @@ fn sequential_comp() {
     );
     calc_state.insert(0, hs);
 
+    info!("Generating...");
+
     for depth in 0u8..MAX_DEPTH {
+        info!("Depth {}", depth);
         let current_hashmap = calc_state.get(&depth).unwrap();
 
         let mut next_hashmap = HashMap::new();
@@ -116,6 +120,9 @@ fn sequential_comp() {
                 GameResult::WhiteWin | GameResult::BlackWin => continue,
                 GameResult::Intermediate(game_result_board_vec) => {
                     'outer: for (_, board) in game_result_board_vec {
+                        if board.0 == 0x8C7C696C3C302A15 {
+                            error!("Found");
+                        }
                         if depth >= 2 {
                             for d in 0u8..depth - 1 {
                                 if (!is_player_one && d % 2 == 0) || (is_player_one && d % 2 != 0) {
@@ -135,12 +142,12 @@ fn sequential_comp() {
         is_player_one = !is_player_one;
     }
 
-    duplicate_checker(&calc_state);
+    // duplicate_checker(&calc_state);
 
-    // info!("Calculating White");
-    // calc_proba(true, &calc_state);
-    // info!("Calculating Black");
-    // calc_proba(false, &calc_state);
+    info!("Calculating White");
+    calc_proba(true, &calc_state);
+    info!("Calculating Black");
+    calc_proba(false, &calc_state);
 }
 
 fn duplicate_checker(calc_state: &HashMap<u8, HashMap<Board, GameResult>>) {
@@ -260,9 +267,9 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
                         a = 0;
                         list_guard_mine.insert(*b, (0f32, NextMove(0)))
                     } {
-                        error!("{:X} already in probas WW", b.0);
-                        error!("was {}, {:x}", old.0, old.1);
-                        error!("is {}, {:x}", a, 0);
+                        // error!("{:X} already in probas WW", b.0);
+                        // error!("was {}, {:x}", old.0, old.1);
+                        // error!("is {}, {:x}", a, 0);
                     }
                 }
                 GameResult::BlackWin => {
@@ -274,9 +281,9 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
                         a = 1;
                         list_guard_mine.insert(*b, (1f32, NextMove(0)))
                     } {
-                        error!("{:X} already in probas BW", b.0);
-                        error!("was {}, {:x}", old.0, old.1);
-                        error!("is {}, {:x}", a, 0);
+                        // error!("{:X} already in probas BW", b.0);
+                        // error!("was {}, {:x}", old.0, old.1);
+                        // error!("is {}, {:x}", a, 0);
                     }
                 }
                 GameResult::Intermediate(board_vec) => {
@@ -292,12 +299,12 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
                             }
                         }
                         if let Some(tuple) = list_guard_mine.insert(*b, best_move) {
-                            if tuple.0 != 0.5f32 {
-                                error!("{:X} already in probas", b.0);
-                                // ici
-                                error!("was {}, {:x}", tuple.0, tuple.1);
-                                error!("is {}, {:x}", best_move.0, best_move.1);
-                            }
+                            // if tuple.0 != 0.5f32 {
+                            //     error!("{:X} already in probas", b.0);
+                            //     // ici
+                            //     error!("was {}, {:x}", tuple.0, tuple.1);
+                            //     error!("is {}, {:x}", best_move.0, best_move.1);
+                            // }
                         }
                     } else {
                         let mut proba_sum = 0f32;
@@ -317,16 +324,29 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
 
                         if let Some(tuple) = list_guard_mine.insert(*b, (final_proba, NextMove(0)))
                         {
-                            if tuple.0 != 0.5f32 {
-                                error!("{:X} already in probas ennemy", b.0);
-                                // ici
-                                error!("was {}, {:x}", tuple.0, tuple.1);
-                                error!("is {}, {:x}", final_proba, best_move.1);
-                            }
+                            // if tuple.0 != 0.5f32 {
+                            //     error!("{:X} already in probas ennemy", b.0);
+                            //     // ici
+                            //     error!("was {}, {:x}", tuple.0, tuple.1);
+                            //     error!("is {}, {:x}", final_proba, best_move.1);
+                            // }
                         }
                     }
                 }
             }
+        }
+    }
+
+    let mut f = if is_player_one {
+        std::fs::File::create("white_probas_11_no0.txt").unwrap()
+    } else {
+        std::fs::File::create("black_probas_11_no0.txt").unwrap()
+    };
+
+    for (board, (_, next)) in probas_mine.read().unwrap().iter() {
+        if next.0 != 0 {
+            f.write_all(format!("{:X} {:X}\n", board.0, next).as_bytes())
+                .unwrap();
         }
     }
 }
