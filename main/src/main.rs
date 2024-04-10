@@ -23,10 +23,6 @@ fn main() {
     env::set_var("RUST_LOG", "debug");
     pretty_env_logger::init();
 
-    // write to a file
-    let mut file = std::fs::File::create("output_b_d15.txt").unwrap();
-    let mut file2 = std::fs::File::create("output_w_d15.txt").unwrap();
-
     let mut board_test = Board::new_empty();
     let state = [
         (LION_1, X1Y0),
@@ -94,7 +90,7 @@ fn main() {
 //     info!("Proba: {}", proba);
 // }
 
-const MAX_DEPTH: u8 = 11;
+const MAX_DEPTH: u8 = 15;
 
 fn sequential_comp() {
     let mut calc_state: HashMap<u8, HashMap<Board, GameResult>> = HashMap::default();
@@ -120,9 +116,9 @@ fn sequential_comp() {
                 GameResult::WhiteWin | GameResult::BlackWin => continue,
                 GameResult::Intermediate(game_result_board_vec) => {
                     'outer: for (_, board) in game_result_board_vec {
-                        if board.0 == 0x8C7C695547302A11 {
-                            // error!("a");
-                        }
+                        // if board.0 == 0x8C7C696C45302A11 {
+                        //     error!("a");
+                        // }
                         if depth >= 2 {
                             for d in 0u8..depth - 1 {
                                 if (is_player_one && d % 2 == 0) || (!is_player_one && d % 2 != 0) {
@@ -133,14 +129,19 @@ fn sequential_comp() {
                                 }
                             }
                         }
-                        if board.0 == 0x8C7C695547302A11 {
-                            // error!("Found");
-                        }
+                        // if board.0 == 0x8C7C696C45302A11 {
+                        //     error!("Found");
+                        // }
                         next_hashmap.insert(*board, board.get_next_states_2(!is_player_one));
                     }
                 }
             }
         }
+
+        if next_hashmap.is_empty() {
+            error!("FINAL DEPTH : {}", depth)
+        }
+
         calc_state.insert(depth + 1, next_hashmap);
         is_player_one = !is_player_one;
     }
@@ -153,30 +154,30 @@ fn sequential_comp() {
     calc_proba(false, &calc_state);
 }
 
-fn duplicate_checker(calc_state: &HashMap<u8, HashMap<Board, GameResult>>) {
-    let mut all_white: HashMap<&Board, &GameResult> = HashMap::default();
-    let mut all_black: HashMap<&Board, &GameResult> = HashMap::default();
-    let mut master_len_white = 0;
-    let mut master_len_black = 0;
-
-    for d in 0..MAX_DEPTH {
-        if d % 2 == 0 {
-            master_len_white += calc_state.get(&d).unwrap().len();
-            all_white.extend(calc_state.get(&d).unwrap())
-        } else {
-            master_len_black += calc_state.get(&d).unwrap().len();
-            all_black.extend(calc_state.get(&d).unwrap())
-        }
-    }
-
-    debug!("White");
-    info!("was : {}", master_len_white);
-    info!("is : {}", all_white.len());
-
-    debug!("Black");
-    info!("was : {}", master_len_black);
-    info!("is : {}", all_black.len());
-}
+// fn duplicate_checker(calc_state: &HashMap<u8, HashMap<Board, GameResult>>) {
+//     let mut all_white: HashMap<&Board, &GameResult> = HashMap::default();
+//     let mut all_black: HashMap<&Board, &GameResult> = HashMap::default();
+//     let mut master_len_white = 0;
+//     let mut master_len_black = 0;
+//
+//     for d in 0..MAX_DEPTH {
+//         if d % 2 == 0 {
+//             master_len_white += calc_state.get(&d).unwrap().len();
+//             all_white.extend(calc_state.get(&d).unwrap())
+//         } else {
+//             master_len_black += calc_state.get(&d).unwrap().len();
+//             all_black.extend(calc_state.get(&d).unwrap())
+//         }
+//     }
+//
+//     debug!("White");
+//     info!("was : {}", master_len_white);
+//     info!("is : {}", all_white.len());
+//
+//     debug!("Black");
+//     info!("was : {}", master_len_black);
+//     info!("is : {}", all_black.len());
+// }
 
 fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameResult>>) {
     let probas_mine: Arc<RwLock<HashMap<Board, (f32, NextMove)>>> =
@@ -263,7 +264,7 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
             match game_result {
                 GameResult::WhiteWin => {
                     let a;
-                    if let Some(old) = if is_player_one {
+                    if let Some(_old) = if is_player_one {
                         a = 1;
                         list_guard_mine.insert(*b, (1f32, NextMove(0)))
                     } else {
@@ -277,7 +278,7 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
                 }
                 GameResult::BlackWin => {
                     let a;
-                    if let Some(old) = if is_player_one {
+                    if let Some(_old) = if is_player_one {
                         a = 0;
                         list_guard_mine.insert(*b, (0f32, NextMove(0)))
                     } else {
@@ -301,7 +302,7 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
                                 best_move = (0.5f32, *next)
                             }
                         }
-                        if let Some(tuple) = list_guard_mine.insert(*b, best_move) {
+                        if let Some(_tuple) = list_guard_mine.insert(*b, best_move) {
                             // if tuple.0 != 0.5f32 {
                             //     error!("{:X} already in probas", b.0);
                             //     // ici
@@ -325,7 +326,7 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
 
                         let final_proba = proba_sum / board_number;
 
-                        if let Some(tuple) = list_guard_mine.insert(*b, (final_proba, NextMove(0)))
+                        if let Some(_tuple) = list_guard_mine.insert(*b, (final_proba, NextMove(0)))
                         {
                             // if tuple.0 != 0.5f32 {
                             //     error!("{:X} already in probas ennemy", b.0);
@@ -341,9 +342,9 @@ fn calc_proba(is_player_one: bool, calc_state: &HashMap<u8, HashMap<Board, GameR
     }
 
     let mut f = if is_player_one {
-        std::fs::File::create("white_probas_11_no0.txt").unwrap()
+        std::fs::File::create("white_probas_max.txt").unwrap()
     } else {
-        std::fs::File::create("black_probas_11_no0.txt").unwrap()
+        std::fs::File::create("black_probas_max.txt").unwrap()
     };
 
     for (board, (_, next)) in probas_mine.read().unwrap().iter() {

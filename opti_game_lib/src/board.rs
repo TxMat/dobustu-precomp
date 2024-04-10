@@ -243,8 +243,8 @@ impl Board {
                 for m in piece.moves() {
                     let converted_pos = <&Position as Into<(i8, i8)>>::into(&pos);
                     let new_converted_pos = (
-                        (converted_pos.0 as i8 + if is_player_1 { m.x } else { -m.x }) as u8,
-                        (converted_pos.1 as i8 + if is_player_1 { m.y } else { -m.y }) as u8,
+                        (converted_pos.0 + if is_player_1 { m.x } else { -m.x }) as u8,
+                        (converted_pos.1 + if is_player_1 { m.y } else { -m.y }) as u8,
                     );
                     if (0..3).contains(&new_converted_pos.0)
                         && (0..4).contains(&new_converted_pos.1)
@@ -620,29 +620,25 @@ impl Board {
 
         let mut enemies: Vec<(Piece, Position)> = vec![];
 
-        for i in 0..8 {
+        for (piece, pos) in state.iter() {
             if !found_enemy_king
-                && ((is_player_1 && state[i].0 == LION_2) || (!is_player_1 && state[i].0 == LION_1))
+                && ((is_player_1 && *piece == LION_2) || (!is_player_1 && *piece == LION_1))
             {
                 found_enemy_king = true;
-                if state[i].1 == Position::Dead {
-                    if is_player_1 {
-                        return Some(true);
-                    } else {
-                        return Some(false);
-                    }
+                if *pos == Dead {
+                    return if is_player_1 { Some(true) } else { Some(false) };
                 }
-                enemies.push((state[i].0, state[i].1))
-            } else if !found_own_king && (is_player_1 && state[i].0 == LION_1)
-                || (!is_player_1 && state[i].0 == LION_2)
+                enemies.push((*piece, *pos))
+            } else if !found_own_king && (is_player_1 && *piece == LION_1)
+                || (!is_player_1 && *piece == LION_2)
             {
                 found_own_king = true;
-                if state[i].1.is_winning_row_for_player(is_player_1) {
+                if pos.is_winning_row_for_player(is_player_1) {
                     king_on_winning_row = true;
                 }
-                king_pos = <&Position as Into<(i8, i8)>>::into(&state[i].1);
-            } else if !state[i].0.is_mine(is_player_1) {
-                enemies.push((state[i].0, state[i].1))
+                king_pos = <&Position as Into<(i8, i8)>>::into(pos);
+            } else if !piece.is_mine(is_player_1) {
+                enemies.push((*piece, *pos))
             }
         }
 
@@ -656,8 +652,8 @@ impl Board {
             if (king_pos.0 - enemy_pos.0).abs() < 2 && (king_pos.1 - enemy_pos.1).abs() < 2 {
                 for m in e.0.moves() {
                     let new_pos = (
-                        enemy_pos.0 as i8 + if is_player_1 { m.x } else { -m.x },
-                        enemy_pos.1 as i8 + if is_player_1 { m.y } else { -m.y },
+                        enemy_pos.0 + if is_player_1 { m.x } else { -m.x },
+                        enemy_pos.1 + if is_player_1 { m.y } else { -m.y },
                     );
                     // si la piece adjacente peut manger le lion
                     if new_pos == king_pos {
@@ -671,7 +667,7 @@ impl Board {
             }
         }
 
-        return if king_on_winning_row {
+        if king_on_winning_row {
             if is_player_1 {
                 Some(true)
             } else {
@@ -679,7 +675,7 @@ impl Board {
             }
         } else {
             None
-        };
+        }
     }
 
     // fn is_lion_in_danger(is_player_1: bool, state_processed: [[Piece; 3]; 4]) -> bool {
